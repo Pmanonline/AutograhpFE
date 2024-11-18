@@ -1,4 +1,4 @@
 // const backendURL = "https://backend.eroot.ng/";
-const backendURL = "http://localhost:3001";
+const backendURL = "https://autographbackend.vercel.app";
 
 export default backendURL;
