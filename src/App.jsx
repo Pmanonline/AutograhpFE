@@ -23,7 +23,7 @@ import RegisterUser from "./pages/RegisterUser";
 import RegisterAdmin from "./pages/RegisterAdmin";
 import ForgotPassword from "./pages/ForgotPassword";
 import PasswordReset from "./pages/PasswordResset";
-import Login from "./pages/login";
+import Login from "./pages/Login";
 import ContactUs from "./pages/Contactus";
 import SingleContent from "./pages/singleContent";
 import ResponsiveNavbar from "./components/Navbar";
