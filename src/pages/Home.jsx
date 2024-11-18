@@ -34,36 +34,42 @@ import AllEssentialSite from "../components/Cards/AllEssentialSite";
 
 const documentImages = ["/path/to/document1.jpg", ,];
 
+import buzibodyImage from "../assets/images/buzibody.png";
+import companionImage from "../assets/images/companion.png";
+import ancestriesImage from "../assets/images/ancestries.png";
+import enewsImage from "../assets/images/enews.png";
+
 const cardData = [
   {
     title: "Buzi Bodi",
     description:
       "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
-    image: "/src/assets/images/buzibody.png",
+    image: buzibodyImage,
     link: "/service-2",
   },
   {
     title: "E-companion",
     description:
       "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
-    image: "/src/assets/images/companion.png",
+    image: companionImage,
     link: "/service-2",
   },
 ];
+
 const cardData2 = [
   {
     title: "E-ancestries",
     description:
       "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
-    image: "/src/assets/images/ancestries.png",
-    link: "/service-2",
+    image: ancestriesImage,
+    link: "https://eroot.ng",
   },
   {
     title: "E-news",
     description:
       "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
-    image: "/src/assets/images/enews.png",
-    link: "/service-2",
+    image: enewsImage,
+    link: "https://enews.com.ng/",
   },
 ];
 
