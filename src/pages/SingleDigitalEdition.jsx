@@ -1,460 +1,3 @@
-// import React, { useState, useEffect, useRef } from "react";
-// import { Document, Page, pdfjs } from "react-pdf";
-// import {
-//   ChevronLeft,
-//   ChevronRight,
-//   ZoomIn,
-//   ZoomOut,
-//   Maximize2,
-//   Grid,
-//   X,
-//   Loader2,
-//   Download,
-//   Share2,
-//   Heart,
-//   FileText,
-// } from "lucide-react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import backendURL from "../config";
-
-// pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
-
-// const MagazineFlipbook = () => {
-// const { slug } = useParams();
-// const navigate = useNavigate();
-//   const [edition, setEdition] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [numPages, setNumPages] = useState(null);
-//   const [currentSpread, setCurrentSpread] = useState(0);
-//   const [loadedPages, setLoadedPages] = useState({});
-//   const [isFlipping, setIsFlipping] = useState(false);
-//   const [scale, setScale] = useState(1);
-//   const [showThumbnails, setShowThumbnails] = useState(false);
-//   const [currentPdfIndex, setCurrentPdfIndex] = useState(0);
-//   const [pageCache, setPageCache] = useState({});
-//   const [loadingProgress, setLoadingProgress] = useState(0);
-//   const containerRef = useRef(null);
-//   const bookRef = useRef(null);
-//   const [liked, setLiked] = useState(false);
-
-//   // Improved page loading with progressive enhancement
-//   const loadPdf = async (pdfPath) => {
-//     try {
-//       const pdf = await pdfjs.getDocument(`${backendURL}${pdfPath}`).promise;
-//       setNumPages(pdf.numPages);
-
-//       // Load first few pages immediately for quick display
-//       const initialPages = Math.min(4, pdf.numPages);
-//       const initialCache = {};
-
-//       for (let i = 1; i <= initialPages; i++) {
-//         initialCache[i] = await renderPage(pdf, i);
-//         setLoadingProgress((i / pdf.numPages) * 100);
-//       }
-
-//       setLoadedPages(initialCache);
-
-//       // Load remaining pages in the background
-//       loadRemainingPages(pdf, initialPages);
-//     } catch (err) {
-//       setError("Failed to load PDF");
-//     }
-//   };
-
-//   const loadRemainingPages = async (pdf, startFrom) => {
-//     const cache = { ...loadedPages };
-
-//     for (let i = startFrom + 1; i <= pdf.numPages; i++) {
-//       cache[i] = await renderPage(pdf, i);
-//       setLoadedPages({ ...cache });
-//       setLoadingProgress((i / pdf.numPages) * 100);
-//     }
-//   };
-
-//   const renderPage = async (pdf, pageNum) => {
-//     const page = await pdf.getPage(pageNum);
-//     const canvas = document.createElement("canvas");
-//     const ctx = canvas.getContext("2d");
-//     const viewport = page.getViewport({ scale: 1.5 });
-
-//     canvas.width = viewport.width;
-//     canvas.height = viewport.height;
-
-//     await page.render({ canvasContext: ctx, viewport }).promise;
-//     return canvas.toDataURL();
-//   };
-
-//   // Enhanced page flipping animation
-//   const getPageStyle = (pageNum) => {
-//     const isRightPage = pageNum % 2 === 0;
-//     const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
-//     const isNextSpread = Math.floor((pageNum - 1) / 2) === currentSpread + 1;
-//     const isPrevSpread = Math.floor((pageNum - 1) / 2) === currentSpread - 1;
-
-//     let transform = "";
-//     let zIndex = getPageZIndex(pageNum);
-
-//     if (isFlipping) {
-//       const flipProgress = isRightPage ? 1 : -1;
-//       if (isCurrentSpread || isNextSpread) {
-//         transform = `
-//           rotateY(${getFlipRotation(pageNum)}deg)
-//           translateZ(${isCurrentSpread ? 20 : 0}px)
-//         `;
-//         zIndex = 1000;
-//       }
-//     }
-
-//     return {
-//       position: "absolute",
-//       width: "50%",
-//       height: "100%",
-//       top: 0,
-//       left: isRightPage ? "50%" : 0,
-//       transformOrigin: isRightPage ? "left center" : "right center",
-//       transition: isFlipping
-//         ? "transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000)"
-//         : "none",
-//       transform,
-//       zIndex,
-//       backfaceVisibility: "hidden",
-//       backgroundColor: "white",
-//       boxShadow: isFlipping
-//         ? "0 0 20px rgba(0,0,0,0.2)"
-//         : "0 0 10px rgba(0,0,0,0.1)",
-//     };
-//   };
-
-//   const getFlipRotation = (pageNum) => {
-//     const isRightPage = pageNum % 2 === 0;
-//     const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
-//     const progress = isFlipping ? (isRightPage ? 180 : -180) : 0;
-
-//     if (isCurrentSpread) {
-//       return isRightPage ? progress : 0;
-//     }
-//     return isRightPage ? 0 : progress;
-//   };
-
-//   const getPageZIndex = (pageNum) => {
-//     const spreadIndex = Math.floor((pageNum - 1) / 2);
-//     const baseZIndex = 100 - Math.abs(spreadIndex - currentSpread);
-//     return isFlipping && Math.abs(spreadIndex - currentSpread) <= 1
-//       ? 1000 + baseZIndex
-//       : baseZIndex;
-//   };
-
-//   // Enhanced flip animation
-//   const flip = async (direction) => {
-//     if (isFlipping) return;
-
-//     const nextSpread =
-//       direction === "next"
-//         ? Math.min(currentSpread + 1, Math.floor((numPages - 1) / 2))
-//         : Math.max(currentSpread - 1, 0);
-
-//     if (nextSpread === currentSpread) return;
-
-//     // Add page curl shadow during flip
-//     const addPageCurlShadow = (pageElement) => {
-//       const shadow = document.createElement("div");
-//       shadow.style.cssText = `
-//         position: absolute;
-//         top: 0;
-//         bottom: 0;
-//         width: 100%;
-//         background: linear-gradient(
-//           to right,
-//           rgba(0,0,0,0.2) 0%,
-//           rgba(0,0,0,0) 100%
-//         );
-//         opacity: 0;
-//         transition: opacity 0.8s;
-//       `;
-//       pageElement.appendChild(shadow);
-//       requestAnimationFrame(() => (shadow.style.opacity = "1"));
-//     };
-
-//     setIsFlipping(true);
-
-//     // Add temporary shadows for realistic effect
-//     const currentPages = document.querySelectorAll(".book-page");
-//     currentPages.forEach(addPageCurlShadow);
-
-//     setTimeout(() => {
-//       setCurrentSpread(nextSpread);
-//       setIsFlipping(false);
-
-//       // Remove temporary shadows
-//       currentPages.forEach((page) => {
-//         const shadow = page.querySelector("div");
-//         if (shadow) shadow.remove();
-//       });
-//     }, 800);
-//   };
-
-//   // Component mounting and data fetching
-//   useEffect(() => {
-//     const fetchEdition = async () => {
-//       try {
-//         const response = await fetch(
-//           `${backendURL}/api/getDigitalEditionBySlug/${slug}`
-//         );
-//         if (!response.ok) throw new Error("Failed to fetch digital edition");
-//         const data = await response.json();
-//         if (!data.image2?.length) throw new Error("No PDF files found");
-//         setEdition(data);
-//         setLoading(false);
-//       } catch (err) {
-//         setError(err.message);
-//         setLoading(false);
-//       }
-//     };
-
-//     if (slug) fetchEdition();
-//   }, [slug]);
-
-//   useEffect(() => {
-//     setCurrentSpread(0);
-//     setLoadedPages({});
-//     setNumPages(null);
-//     setLoadingProgress(0);
-//     if (edition?.image2?.[currentPdfIndex]) {
-//       loadPdf(edition.image2[currentPdfIndex]);
-//     }
-//   }, [currentPdfIndex, edition]);
-
-//   // Share handler
-//   const handleShare = async () => {
-//     try {
-//       if (navigator.share) {
-//         await navigator.share({
-//           title: edition?.title,
-//           text: `Check out ${edition?.title}`,
-//           url: window.location.href,
-//         });
-//       } else {
-//         // Fallback to copying to clipboard
-//         await navigator.clipboard.writeText(window.location.href);
-//         // You might want to add a toast notification here
-//       }
-//     } catch (err) {
-//       console.error("Error sharing:", err);
-//     }
-//   };
-
-//   // Download handler
-//   const handleDownload = async () => {
-//     if (edition?.pdfUrl) {
-//       try {
-//         const response = await fetch(edition.pdfUrl);
-//         const blob = await response.blob();
-//         const url = window.URL.createObjectURL(blob);
-//         const a = document.createElement("a");
-//         a.href = url;
-//         a.download = `${edition.title}.pdf`;
-//         document.body.appendChild(a);
-//         a.click();
-//         window.URL.revokeObjectURL(url);
-//         document.body.removeChild(a);
-//       } catch (err) {
-//         console.error("Error downloading PDF:", err);
-//       }
-//     }
-//   };
-
-//   // Like handler
-//   const handleLike = async () => {
-//     try {
-//       await fetch(`${import.meta.env.VITE_API_URL}/api/editions/${slug}/like`, {
-//         method: "POST",
-//         credentials: "include",
-//       });
-//       setLiked(!liked);
-//     } catch (err) {
-//       console.error("Error liking edition:", err);
-//     }
-//   };
-
-//   return (
-//     <div className="sm:container mx-auto px-4 py-3">
-//       <div className="flex flex-col lg:flex-row gap-8">
-//         <main className="lg:w-[75%]">
-//           <div className="relative w-full h-screen overflow-hidden">
-//             {/* Main content area */}
-//             <div className="absolute inset-x-0 top-16 bottom-16">
-//               <div
-//                 ref={containerRef}
-//                 className="relative h-full flex items-center justify-center p-2"
-//                 style={{ transform: `scale(${scale})` }}
-//               >
-//                 <div
-//                   ref={bookRef}
-//                   className="relative w-full max-w-5xl h-[calc(100vh-8rem)] perspective-2000"
-//                 >
-//                   {/* Book container with enhanced 3D effect */}
-//                   <div className="relative w-full h-full bg-white rounded-lg shadow-2xl preserve-3d">
-//                     {/* Pages with enhanced animations */}
-//                     {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
-//                       <div
-//                         key={pageNum}
-//                         style={getPageStyle(parseInt(pageNum))}
-//                         className="book-page absolute rounded-lg overflow-hidden shadow-lg"
-//                       >
-//                         <img
-//                           src={pageUrl}
-//                           alt={`Page ${pageNum}`}
-//                           className="w-full h-full object-contain"
-//                         />
-//                       </div>
-//                     ))}
-//                   </div>
-
-//                   {/* Navigation buttons */}
-//                   <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4">
-//                     <button
-//                       onClick={() => flip("prev")}
-//                       disabled={currentSpread === 0 || isFlipping}
-//                       className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
-//                         transition-all hover:scale-110 disabled:hover:scale-100"
-//                     >
-//                       <ChevronLeft className="w-6 h-6" />
-//                     </button>
-
-//                     <button
-//                       onClick={() => flip("next")}
-//                       disabled={
-//                         currentSpread >= Math.floor((numPages - 1) / 2) ||
-//                         isFlipping
-//                       }
-//                       className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
-//                         transition-all hover:scale-110 disabled:hover:scale-100"
-//                     >
-//                       <ChevronRight className="w-6 h-6" />
-//                     </button>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Bottom controls */}
-//             <div className="absolute bottom-[-0.5rem] left-0 right-0 h-16 bg-gray-800  rounded-b-3xl backdrop-blur-sm z-10 ">
-//               <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between px-4">
-//                 <div className="flex items-center gap-4">
-//                   <span className="text-white/90 text-xs">
-//                     PDF {currentPdfIndex + 1}/{edition?.image2?.length} | Page{" "}
-//                     {currentSpread * 2 + 1}-
-//                     {Math.min(currentSpread * 2 + 2, numPages)}/{numPages}
-//                   </span>
-
-//                   <div className="flex items-center gap-1">
-//                     <button
-//                       onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
-//                       className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-//                     >
-//                       <ZoomOut className="w-4 h-4" />
-//                     </button>
-//                     <span className="text-white/90 text-xs min-w-[3ch] text-center">
-//                       {Math.round(scale * 100)}%
-//                     </span>
-//                     <button
-//                       onClick={() => setScale((s) => Math.min(s + 0.1, 2))}
-//                       className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-//                     >
-//                       <ZoomIn className="w-4 h-4" />
-//                     </button>
-//                   </div>
-//                 </div>
-
-//                 <div className="flex items-center gap-2">
-//                   <button
-//                     onClick={handleShare}
-//                     className="p-2 text-white hover:bg-gray-700 rounded"
-//                     title="Share"
-//                   >
-//                     <Share2 className="w-5 h-5" />
-//                   </button>
-
-//                   <button
-//                     onClick={handleDownload}
-//                     className="p-2 text-white hover:bg-gray-700 rounded"
-//                     title="Download"
-//                   >
-//                     <Download className="w-5 h-5" />
-//                   </button>
-
-//                   <button
-//                     onClick={handleLike}
-//                     className={`p-2 hover:bg-gray-700 rounded ${
-//                       liked ? "text-red-500" : "text-white"
-//                     }`}
-//                     title="Like"
-//                   >
-//                     <Heart
-//                       className="w-5 h-5"
-//                       fill={liked ? "currentColor" : "none"}
-//                     />
-//                   </button>
-//                   <button
-//                     onClick={() => setShowThumbnails(!showThumbnails)}
-//                     className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-//                   >
-//                     <Grid className="w-4 h-4" />
-//                   </button>
-//                   <button
-//                     onClick={() => containerRef.current?.requestFullscreen()}
-//                     className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-//                   >
-//                     <Maximize2 className="w-4 h-4" />
-//                   </button>
-//                 </div>
-//               </div>
-//             </div>
-//             {/* Loading overlay with progress */}
-//             {loadingProgress < 100 && !error && (
-//               <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-//                 <div className="flex flex-col items-center gap-4">
-//                   <Loader2 className="w-8 h-8 text-white animate-spin" />
-//                   <div className="w-64 bg-white/20 rounded-full h-2">
-//                     <div
-//                       className="bg-white rounded-full h-2 transition-all duration-300"
-//                       style={{ width: `${loadingProgress}%` }}
-//                     />
-//                   </div>
-//                   <p className="text-white/90">
-//                     Loading pages... {Math.round(loadingProgress)}%
-//                   </p>
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* Enhanced styles for 3D effects and animations */}
-//             <style jsx>{`
-//               .perspective-2000 {
-//                 perspective: 2500px;
-//               }
-//               .preserve-3d {
-//                 transform-style: preserve-3d;
-//                 transition: transform 0.3s ease;
-//               }
-//               .book-page {
-//                 transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
-//                   box-shadow 0.8s ease;
-//               }
-//               .book-page:hover {
-//                 box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-//               }
-//             `}</style>
-//           </div>
-//         </main>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default MagazineFlipbook;
-
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
@@ -469,32 +12,102 @@ import {
   Download,
   Share2,
   Heart,
-  FileText,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import backendURL from "../config";
 
+// Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
-// Thumbnail component remains the same
-const PageThumbnail = React.memo(({ pageUrl, pageNum, onClick, isActive }) => (
-  <div
-    onClick={onClick}
-    className={`relative cursor-pointer transition-all duration-200 ${
-      isActive ? "ring-2 ring-blue-500" : "hover:ring-2 hover:ring-gray-400"
-    }`}
-  >
-    <img
-      src={pageUrl}
-      alt={`Page ${pageNum}`}
-      className="w-full h-full object-contain rounded-lg shadow-md"
-      loading="lazy"
-    />
-    <span className="absolute bottom-2 right-2 bg-black/60 text-white/90 text-xs px-2 py-1 rounded-full">
-      {pageNum}
-    </span>
-  </div>
-));
+// Create a cache instance
+const pageCache = new Map();
+const pdfCache = new Map();
+
+// Create a priority queue for page loading
+class PageLoadQueue {
+  constructor() {
+    this.queue = [];
+    this.processing = false;
+  }
+
+  add(pageNum, priority) {
+    const existingIndex = this.queue.findIndex(
+      (item) => item.pageNum === pageNum
+    );
+    if (existingIndex !== -1) {
+      this.queue[existingIndex].priority = Math.max(
+        this.queue[existingIndex].priority,
+        priority
+      );
+      this.queue.sort((a, b) => b.priority - a.priority);
+    } else {
+      this.queue.push({ pageNum, priority });
+      this.queue.sort((a, b) => b.priority - a.priority);
+    }
+  }
+
+  async process(renderCallback) {
+    if (this.processing || this.queue.length === 0) return;
+    this.processing = true;
+
+    const { pageNum } = this.queue.shift();
+    try {
+      await renderCallback(pageNum);
+    } catch (error) {
+      console.error(`Error processing page ${pageNum}:`, error);
+    }
+    this.processing = false;
+    this.process(renderCallback);
+  }
+}
+
+const loadQueue = new PageLoadQueue();
+
+// Thumbnail component with loading optimization
+const PageThumbnail = React.memo(
+  ({ pageNum, onClick, isActive, loadedPages }) => {
+    const [thumbnailUrl, setThumbnailUrl] = useState(null);
+
+    useEffect(() => {
+      if (loadedPages[pageNum]) {
+        // Generate a low-resolution thumbnail
+        const img = new Image();
+        img.src = loadedPages[pageNum];
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = img.width * 0.2; // 20% of original size
+          canvas.height = img.height * 0.2;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          setThumbnailUrl(canvas.toDataURL("image/jpeg", 0.5));
+        };
+      }
+    }, [loadedPages[pageNum]]);
+
+    return (
+      <div
+        onClick={onClick}
+        className={`relative cursor-pointer transition-all duration-200 ${
+          isActive ? "ring-2 ring-blue-500" : "hover:ring-2 hover:ring-gray-400"
+        }`}
+      >
+        {thumbnailUrl ? (
+          <img
+            src={thumbnailUrl}
+            alt={`Page ${pageNum}`}
+            className="w-full h-full object-contain rounded-lg shadow-md"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 animate-pulse rounded-lg" />
+        )}
+        <span className="absolute bottom-2 right-2 bg-black/60 text-white/90 text-xs px-2 py-1 rounded-full">
+          {pageNum}
+        </span>
+      </div>
+    );
+  }
+);
 
 const MagazineFlipbook = () => {
   const { slug } = useParams();
@@ -517,8 +130,163 @@ const MagazineFlipbook = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
+  const [initialPagesLoaded, setInitialPagesLoaded] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState("initial"); // 'initial', 'preview', 'complete'
+  const abortControllerRef = useRef(null);
 
-  // Add drag handling functions
+  // Optimized PDF loading function
+  const loadPdf = async (pdfPath) => {
+    try {
+      // Check cache first
+      let pdf = pdfCache.get(pdfPath);
+
+      if (!pdf) {
+        // Cancel any ongoing loads
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        // Load PDF with progress tracking
+        const loadingTask = pdfjs.getDocument({
+          url: `${backendURL}${pdfPath}`,
+          signal: abortControllerRef.current.signal,
+        });
+
+        loadingTask.onProgress = ({ loaded, total }) => {
+          setLoadingProgress((loaded / total) * 100);
+        };
+
+        pdf = await loadingTask.promise;
+        pdfCache.set(pdfPath, pdf);
+      }
+
+      setNumPages(pdf.numPages);
+
+      // Load initial visible pages immediately
+      const initialPages = getVisiblePages(currentSpread);
+      await loadPagesInRange(pdf, initialPages.start, initialPages.end);
+      setInitialPagesLoaded(true);
+
+      // Load preview quality versions of remaining pages
+      loadPreviewPages(pdf);
+
+      // Load full quality versions in the background
+      loadRemainingPagesInBackground(pdf);
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      setError("Failed to load PDF");
+    }
+  };
+
+  // Helper function to determine visible page range
+  const getVisiblePages = (spread) => {
+    const start = Math.max(spread * 2 - 2, 1);
+    const end = Math.min(spread * 2 + 3, numPages);
+    return { start, end };
+  };
+
+  // Load pages in a specific range
+  const loadPagesInRange = async (pdf, start, end) => {
+    const pagePromises = [];
+    for (let i = start; i <= end; i++) {
+      if (!loadedPages[i]) {
+        pagePromises.push(renderPage(pdf, i));
+      }
+    }
+    const renderedPages = await Promise.all(pagePromises);
+    const newPages = {};
+    renderedPages.forEach((pageData, index) => {
+      const pageNum = start + index;
+      newPages[pageNum] = pageData;
+    });
+    setLoadedPages((prev) => ({ ...prev, ...newPages }));
+  };
+
+  // Load preview quality versions of pages
+  const loadPreviewPages = async (pdf) => {
+    setLoadingPhase("preview");
+    for (let i = 1; i <= pdf.numPages; i++) {
+      if (!loadedPages[i]) {
+        loadQueue.add(i, getPagePriority(i));
+      }
+    }
+    loadQueue.process(async (pageNum) => {
+      const pageData = await renderPage(pdf, pageNum, 0.5); // Lower quality
+      setLoadedPages((prev) => ({ ...prev, [pageNum]: pageData }));
+    });
+  };
+
+  // Load full quality versions in background
+  const loadRemainingPagesInBackground = async (pdf) => {
+    setLoadingPhase("complete");
+    const worker = new Worker("/pdfWorker.js"); // You'll need to create this worker
+
+    worker.onmessage = (e) => {
+      const { pageNum, pageData } = e.data;
+      setLoadedPages((prev) => ({ ...prev, [pageNum]: pageData }));
+    };
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      worker.postMessage({ pdf, pageNum: i });
+    }
+  };
+
+  // Optimized page rendering with quality control
+  const renderPage = async (pdf, pageNum, quality = 1) => {
+    // Check cache first
+    const cacheKey = `${pageNum}-${quality}`;
+    if (pageCache.has(cacheKey)) {
+      return pageCache.get(cacheKey);
+    }
+
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.5 * quality });
+
+    // Use OffscreenCanvas for better performance
+    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
+    const ctx = canvas.getContext("2d");
+
+    await page.render({
+      canvasContext: ctx,
+      viewport,
+      background: "rgb(255, 255, 255)",
+    }).promise;
+
+    const blob = await canvas.convertToBlob({
+      type: "image/jpeg",
+      quality: quality,
+    });
+    const url = URL.createObjectURL(blob);
+
+    // Cache the result
+    pageCache.set(cacheKey, url);
+
+    return url;
+  };
+
+  // Calculate page loading priority
+  const getPagePriority = (pageNum) => {
+    const currentPage = currentSpread * 2;
+    const distance = Math.abs(pageNum - currentPage);
+    return 1 / (distance + 1);
+  };
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      // Cleanup cached URLs
+      pageCache.forEach((url) => URL.revokeObjectURL(url));
+      pageCache.clear();
+
+      // Abort any ongoing loads
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // ... (rest of your component code remains the same)
   const handleMouseDown = (e) => {
     if (scale <= 1) return;
     setIsDragging(true);
@@ -598,41 +366,6 @@ const MagazineFlipbook = () => {
     };
   }, [isDragging, dragStart]);
 
-  // Optimized page loading with chunking
-  const loadPdf = async (pdfPath) => {
-    try {
-      const pdf = await pdfjs.getDocument(`${backendURL}${pdfPath}`).promise;
-      setNumPages(pdf.numPages);
-
-      // Load pages in chunks for better performance
-      const chunkSize = 4;
-      const chunks = Math.ceil(pdf.numPages / chunkSize);
-
-      for (let chunk = 0; chunk < chunks; chunk++) {
-        const startPage = chunk * chunkSize + 1;
-        const endPage = Math.min((chunk + 1) * chunkSize, pdf.numPages);
-
-        // Load chunk of pages concurrently
-        const pagePromises = [];
-        for (let i = startPage; i <= endPage; i++) {
-          pagePromises.push(renderPage(pdf, i));
-        }
-
-        const renderedPages = await Promise.all(pagePromises);
-        const newPages = {};
-        renderedPages.forEach((pageData, index) => {
-          const pageNum = startPage + index;
-          newPages[pageNum] = pageData;
-        });
-
-        setLoadedPages((prev) => ({ ...prev, ...newPages }));
-        setLoadingProgress((endPage / pdf.numPages) * 100);
-      }
-    } catch (err) {
-      setError("Failed to load PDF");
-    }
-  };
-
   const loadRemainingPages = async (pdf, startFrom) => {
     const cache = { ...loadedPages };
 
@@ -641,21 +374,6 @@ const MagazineFlipbook = () => {
       setLoadedPages({ ...cache });
       setLoadingProgress((i / pdf.numPages) * 100);
     }
-  };
-
-  const renderPage = async (pdf, pageNum) => {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.5 });
-
-    // Create an offscreen canvas for better performance
-    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
-    const ctx = canvas.getContext("2d");
-
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    // Convert to blob for better memory management
-    const blob = await canvas.convertToBlob();
-    return URL.createObjectURL(blob);
   };
 
   // Grid view component
@@ -894,209 +612,222 @@ const MagazineFlipbook = () => {
     }
   };
   return (
-    <div className="sm:container mx-auto px-0 py-3">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <main className="lg:w-[75%]">
-          <div className="relative w-full h-screen overflow-hidden">
-            <div className="absolute inset-x-0 top-16 bottom-16">
-              <div
-                ref={containerRef}
-                className="relative h-full flex items-center justify-center p-2 overflow-hidden"
-                onMouseDown={handleMouseDown}
-                style={{
-                  cursor:
-                    scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-                }}
-              >
+    <>
+      <div className="sm:container mx-auto px-0 py-3">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <main className="lg:w-[75%]">
+            <div className="relative w-full h-screen overflow-hidden">
+              {loadingPhase !== "complete" && (
+                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {loadingPhase === "initial"
+                    ? "Loading initial pages..."
+                    : "Loading preview..."}
+                </div>
+              )}
+              <div className="absolute inset-x-0 top-16 bottom-16">
                 <div
-                  ref={bookRef}
-                  className="relative w-full max-w-5xl h-[calc(100vh-8rem)] perspective-2000"
+                  ref={containerRef}
+                  className="relative h-full flex items-center justify-center p-2 overflow-hidden"
+                  onMouseDown={handleMouseDown}
                   style={{
-                    transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-                    transition: isDragging ? "none" : "transform 0.3s ease",
+                    cursor:
+                      scale > 1
+                        ? isDragging
+                          ? "grabbing"
+                          : "grab"
+                        : "default",
                   }}
                 >
-                  {/* Rest of the book content remains the same */}
-                  <div className="relative w-full h-full bg-white rounded-lg shadow-2xl preserve-3d">
-                    {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
-                      <div
-                        key={pageNum}
-                        style={getPageStyle(parseInt(pageNum))}
-                        className="book-page absolute rounded-lg overflow-hidden shadow-lg "
+                  <div
+                    ref={bookRef}
+                    className="relative w-full max-w-5xl h-[calc(100vh-8rem)] perspective-2000"
+                    style={{
+                      transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+                      transition: isDragging ? "none" : "transform 0.3s ease",
+                    }}
+                  >
+                    {/* Rest of the book content remains the same */}
+                    <div className="relative w-full h-full bg-white rounded-lg shadow-2xl preserve-3d">
+                      {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
+                        <div
+                          key={pageNum}
+                          style={getPageStyle(parseInt(pageNum))}
+                          className="book-page absolute rounded-lg overflow-hidden shadow-lg "
+                        >
+                          <img
+                            src={pageUrl}
+                            alt={`Page ${pageNum}`}
+                            className="w-full h-full object-contain"
+                            draggable={false}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {/* Navigation buttons */}
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between">
+                      <button
+                        onClick={() => flip("prev")}
+                        disabled={currentSpread === 0 || isFlipping}
+                        className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
+                        transition-all hover:scale-110 disabled:hover:scale-100"
                       >
-                        <img
-                          src={pageUrl}
-                          alt={`Page ${pageNum}`}
-                          className="w-full h-full object-contain"
-                          draggable={false}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Navigation buttons */}
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between">
-                    <button
-                      onClick={() => flip("prev")}
-                      disabled={currentSpread === 0 || isFlipping}
-                      className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
-                        transition-all hover:scale-110 disabled:hover:scale-100"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
+                        <ChevronLeft className="w-6 h-6" />
+                      </button>
 
-                    <button
-                      onClick={() => flip("next")}
-                      disabled={
-                        currentSpread >= Math.floor((numPages - 1) / 2) ||
-                        isFlipping
-                      }
-                      className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
+                      <button
+                        onClick={() => flip("next")}
+                        disabled={
+                          currentSpread >= Math.floor((numPages - 1) / 2) ||
+                          isFlipping
+                        }
+                        className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
                         transition-all hover:scale-110 disabled:hover:scale-100"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
+                      >
+                        <ChevronRight className="w-6 h-6" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            {ThumbnailGrid}
+              {ThumbnailGrid}
 
-            {/* Bottom controls */}
-            <div className="absolute bottom-[-0.5rem] left-0 right-0 h-16 bg-gray-800  rounded-b-3xl backdrop-blur-sm z-10 ">
-              <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between px-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-white/90 text-xs">
-                    PDF {currentPdfIndex + 1}/{edition?.image2?.length} | Page{" "}
-                    {currentSpread * 2 + 1}-
-                    {Math.min(currentSpread * 2 + 2, numPages)}/{numPages}
-                  </span>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
-                      className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                    >
-                      <ZoomOut className="w-4 h-4" />
-                    </button>
-                    <span className="text-white/90 text-xs min-w-[3ch] text-center">
-                      {Math.round(scale * 100)}%
+              {/* Bottom controls */}
+              <div className="absolute bottom-[-0.5rem] left-0 right-0 h-16 bg-gray-800  rounded-b-3xl backdrop-blur-sm z-10 ">
+                <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between px-4">
+                  <div className="flex items-center gap-4">
+                    <span className="text-white/90 text-xs">
+                      PDF {currentPdfIndex + 1}/{edition?.image2?.length} | Page{" "}
+                      {currentSpread * 2 + 1}-
+                      {Math.min(currentSpread * 2 + 2, numPages)}/{numPages}
                     </span>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
+                        className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                      >
+                        <ZoomOut className="w-4 h-4" />
+                      </button>
+                      <span className="text-white/90 text-xs min-w-[3ch] text-center">
+                        {Math.round(scale * 100)}%
+                      </span>
+                      <button
+                        onClick={() => setScale((s) => Math.min(s + 0.1, 2))}
+                        className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setScale((s) => Math.min(s + 0.1, 2))}
+                      onClick={handleShare}
+                      className="p-2 text-white hover:bg-gray-700 rounded"
+                      title="Share"
+                    >
+                      <Share2 className="w-5 h-5" />
+                    </button>
+
+                    <button
+                      onClick={handleDownload}
+                      className="p-2 text-white hover:bg-gray-700 rounded"
+                      title="Download"
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+
+                    <button
+                      onClick={handleLike}
+                      className={`p-2 hover:bg-gray-700 rounded ${
+                        liked ? "text-red-500" : "text-white"
+                      }`}
+                      title="Like"
+                    >
+                      <Heart
+                        className="w-5 h-5"
+                        fill={liked ? "currentColor" : "none"}
+                      />
+                    </button>
+                    <button
+                      onClick={() => setShowThumbnails(!showThumbnails)}
                       className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
                     >
-                      <ZoomIn className="w-4 h-4" />
+                      <Grid className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => containerRef.current?.requestFullscreen()}
+                      className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                    >
+                      <Maximize2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleShare}
-                    className="p-2 text-white hover:bg-gray-700 rounded"
-                    title="Share"
-                  >
-                    <Share2 className="w-5 h-5" />
-                  </button>
-
-                  <button
-                    onClick={handleDownload}
-                    className="p-2 text-white hover:bg-gray-700 rounded"
-                    title="Download"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-
-                  <button
-                    onClick={handleLike}
-                    className={`p-2 hover:bg-gray-700 rounded ${
-                      liked ? "text-red-500" : "text-white"
-                    }`}
-                    title="Like"
-                  >
-                    <Heart
-                      className="w-5 h-5"
-                      fill={liked ? "currentColor" : "none"}
-                    />
-                  </button>
-                  <button
-                    onClick={() => setShowThumbnails(!showThumbnails)}
-                    className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                  >
-                    <Grid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => containerRef.current?.requestFullscreen()}
-                    className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
-            </div>
-            {/* Loading overlay with progress */}
-            {loadingProgress < 100 && !error && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="w-8 h-8 text-white animate-spin" />
-                  <div className="w-64 bg-white/20 rounded-full h-2">
-                    <div
-                      className="bg-white rounded-full h-2 transition-all duration-300"
-                      style={{ width: `${loadingProgress}%` }}
-                    />
+              {/* Loading overlay with progress */}
+              {loadingProgress < 100 && !error && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    <div className="w-64 bg-white/20 rounded-full h-2">
+                      <div
+                        className="bg-white rounded-full h-2 transition-all duration-300"
+                        style={{ width: `${loadingProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-white/90">
+                      Loading pages... {Math.round(loadingProgress)}%
+                    </p>
                   </div>
-                  <p className="text-white/90">
-                    Loading pages... {Math.round(loadingProgress)}%
-                  </p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* other related Editions */}
-          <h2>related editions</h2>
-        </main>
-        <aside className="lg:w-[25%] p-2 mt-12">
-          <div className="advert-box bg-white shadow-md rounded-lg overflow-hidden Nlg:hidden">
-            <img
-              src="https://alexis.lindaikejisblog.com/photos/shares/5b98d7b857a99.jpg" // Replace with your advert image URL
-              alt="Advert"
-              className="w-full h-auto"
-            />
-            <div className="p-4">
-              <h3 className="text-lg font-semibold">Advert </h3>
-              <p className="text-gray-600">
-                This is a brief description of the advert. It can include
-                details about the product or service being advertised.
-              </p>
-              <a
-                href="https://example.com" // Replace with your advert link
-                className="inline-block mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition"
-              >
-                Learn More
-              </a>
+              )}
             </div>
-          </div>
-        </aside>
-      </div>
 
-      <style jsx>{`
-        .perspective-2000 {
-          perspective: 2500px;
-        }
-        .preserve-3d {
-          transform-style: preserve-3d;
-        }
-        .book-page {
-          transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
-            box-shadow 0.8s ease;
-          user-select: none;
-        }
-        .book-page:hover {
-          box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-        }
-      `}</style>
-    </div>
+            {/* other related Editions */}
+            <h2>related editions</h2>
+          </main>
+          <aside className="lg:w-[25%] p-2 mt-12">
+            <div className="advert-box bg-white shadow-md rounded-lg overflow-hidden Nlg:hidden">
+              <img
+                src="https://alexis.lindaikejisblog.com/photos/shares/5b98d7b857a99.jpg" // Replace with your advert image URL
+                alt="Advert"
+                className="w-full h-auto"
+              />
+              <div className="p-4">
+                <h3 className="text-lg font-semibold">Advert </h3>
+                <p className="text-gray-600">
+                  This is a brief description of the advert. It can include
+                  details about the product or service being advertised.
+                </p>
+                <a
+                  href="https://example.com" // Replace with your advert link
+                  className="inline-block mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition"
+                >
+                  Learn More
+                </a>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <style jsx>{`
+          .perspective-2000 {
+            perspective: 2500px;
+          }
+          .preserve-3d {
+            transform-style: preserve-3d;
+          }
+          .book-page {
+            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
+              box-shadow 0.8s ease;
+            user-select: none;
+          }
+          .book-page:hover {
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+          }
+        `}</style>
+      </div>
+    </>
   );
 };
 

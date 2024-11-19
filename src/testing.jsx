@@ -19,7 +19,7 @@ import backendURL from "../config";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
-// Thumbnail component for better performance
+// Thumbnail component remains the same
 const PageThumbnail = React.memo(({ pageUrl, pageNum, onClick, isActive }) => (
   <div
     onClick={onClick}
@@ -56,6 +56,90 @@ const MagazineFlipbook = () => {
   const containerRef = useRef(null);
   const bookRef = useRef(null);
   const [liked, setLiked] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
+
+  // Add drag handling functions
+  const handleMouseDown = (e) => {
+    if (scale <= 1) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - lastPosition.x,
+      y: e.clientY - lastPosition.y,
+    });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || scale <= 1) return;
+
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+
+    // Calculate boundaries
+    const container = containerRef.current;
+    const book = bookRef.current;
+    if (!container || !book) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const bookRect = book.getBoundingClientRect();
+
+    // Calculate max boundaries based on zoom level
+    const maxX = Math.max(
+      0,
+      (bookRect.width * scale - containerRect.width) / 2
+    );
+    const maxY = Math.max(
+      0,
+      (bookRect.height * scale - containerRect.height) / 2
+    );
+
+    // Constrain movement within boundaries
+    const constrainedX = Math.min(Math.max(newX, -maxX), maxX);
+    const constrainedY = Math.min(Math.max(newY, -maxY), maxY);
+
+    setPosition({
+      x: constrainedX,
+      y: constrainedY,
+    });
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      setLastPosition(position);
+    }
+  };
+
+  // Reset position when scale changes
+  useEffect(() => {
+    if (scale <= 1) {
+      setPosition({ x: 0, y: 0 });
+      setLastPosition({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
+  // Add event listeners for drag handling
+  useEffect(() => {
+    const handleGlobalMouseMove = (e) => {
+      if (isDragging) {
+        handleMouseMove(e);
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      handleMouseUp();
+    };
+
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
+  }, [isDragging, dragStart]);
 
   // Optimized page loading with chunking
   const loadPdf = async (pdfPath) => {
@@ -156,8 +240,9 @@ const MagazineFlipbook = () => {
   }, [showThumbnails, loadedPages, currentSpread]);
 
   // Enhanced page flipping animation
+
   const getPageStyle = (pageNum) => {
-    const isRightPage = pageNum % 2 === 0;
+    const isRightPage = pageNum % 2 === 0; // Right page if even
     const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
     const isNextSpread = Math.floor((pageNum - 1) / 2) === currentSpread + 1;
     const isPrevSpread = Math.floor((pageNum - 1) / 2) === currentSpread - 1;
@@ -166,13 +251,14 @@ const MagazineFlipbook = () => {
     let zIndex = getPageZIndex(pageNum);
 
     if (isFlipping) {
-      const flipProgress = isRightPage ? 1 : -1;
-      if (isCurrentSpread || isNextSpread) {
+      const flipDirection = isRightPage ? -1 : 1; // Determine flipping direction
+      if (isCurrentSpread || isNextSpread || isPrevSpread) {
+        // Adjust the rotation based on the flipping direction
         transform = `
-          rotateY(${getFlipRotation(pageNum)}deg)
-          translateZ(${isCurrentSpread ? 20 : 0}px)
-        `;
-        zIndex = 1000;
+                rotateY(${getFlipRotation(pageNum) * flipDirection}deg)
+                translateZ(${isCurrentSpread ? 20 : 0}px)
+            `;
+        zIndex = 1000; // Bring the flipping page to the front
       }
     }
 
@@ -195,7 +281,6 @@ const MagazineFlipbook = () => {
         : "0 0 10px rgba(0,0,0,0.1)",
     };
   };
-
   const getFlipRotation = (pageNum) => {
     const isRightPage = pageNum % 2 === 0;
     const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
@@ -263,8 +348,6 @@ const MagazineFlipbook = () => {
       });
     }, 800);
   };
-
-  // ... [Previous flip and page style functions remain the same]
 
   useEffect(() => {
     const fetchEdition = async () => {
@@ -353,43 +436,48 @@ const MagazineFlipbook = () => {
       console.error("Error liking edition:", err);
     }
   };
-
   return (
-    <div className="sm:container mx-auto px-4 py-3">
+    <div className="sm:container mx-auto px-0 py-3">
       <div className="flex flex-col lg:flex-row gap-8">
         <main className="lg:w-[75%]">
           <div className="relative w-full h-screen overflow-hidden">
-            {/* Main content area */}
             <div className="absolute inset-x-0 top-16 bottom-16">
               <div
                 ref={containerRef}
-                className="relative h-full flex items-center justify-center p-2"
-                style={{ transform: `scale(${scale})` }}
+                className="relative h-full flex items-center justify-center p-2 overflow-hidden"
+                onMouseDown={handleMouseDown}
+                style={{
+                  cursor:
+                    scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+                }}
               >
                 <div
                   ref={bookRef}
                   className="relative w-full max-w-5xl h-[calc(100vh-8rem)] perspective-2000"
+                  style={{
+                    transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+                    transition: isDragging ? "none" : "transform 0.3s ease",
+                  }}
                 >
-                  {/* Book container with enhanced 3D effect */}
+                  {/* Rest of the book content remains the same */}
                   <div className="relative w-full h-full bg-white rounded-lg shadow-2xl preserve-3d">
-                    {/* Pages with enhanced animations */}
                     {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
                       <div
                         key={pageNum}
                         style={getPageStyle(parseInt(pageNum))}
-                        className="book-page absolute rounded-lg overflow-hidden shadow-lg"
+                        className="book-page absolute rounded-lg overflow-hidden shadow-lg "
                       >
                         <img
                           src={pageUrl}
                           alt={`Page ${pageNum}`}
                           className="w-full h-full object-contain"
+                          draggable={false}
                         />
                       </div>
                     ))}
                   </div>
-
                   {/* Navigation buttons */}
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4">
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between">
                     <button
                       onClick={() => flip("prev")}
                       disabled={currentSpread === 0 || isFlipping}
@@ -506,27 +594,51 @@ const MagazineFlipbook = () => {
                 </div>
               </div>
             )}
-
-            {/* Enhanced styles for 3D effects and animations */}
-            <style jsx>{`
-              .perspective-2000 {
-                perspective: 2500px;
-              }
-              .preserve-3d {
-                transform-style: preserve-3d;
-                transition: transform 0.3s ease;
-              }
-              .book-page {
-                transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
-                  box-shadow 0.8s ease;
-              }
-              .book-page:hover {
-                box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-              }
-            `}</style>
           </div>
+
+          {/* other related Editions */}
+          <h2>related editions</h2>
         </main>
+        <aside className="lg:w-[25%] p-2 mt-12">
+          <div className="advert-box bg-white shadow-md rounded-lg overflow-hidden Nlg:hidden">
+            <img
+              src="https://alexis.lindaikejisblog.com/photos/shares/5b98d7b857a99.jpg" // Replace with your advert image URL
+              alt="Advert"
+              className="w-full h-auto"
+            />
+            <div className="p-4">
+              <h3 className="text-lg font-semibold">Advert </h3>
+              <p className="text-gray-600">
+                This is a brief description of the advert. It can include
+                details about the product or service being advertised.
+              </p>
+              <a
+                href="https://example.com" // Replace with your advert link
+                className="inline-block mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition"
+              >
+                Learn More
+              </a>
+            </div>
+          </div>
+        </aside>
       </div>
+
+      <style jsx>{`
+        .perspective-2000 {
+          perspective: 2500px;
+        }
+        .preserve-3d {
+          transform-style: preserve-3d;
+        }
+        .book-page {
+          transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
+            box-shadow 0.8s ease;
+          user-select: none;
+        }
+        .book-page:hover {
+          box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+        }
+      `}</style>
     </div>
   );
 };

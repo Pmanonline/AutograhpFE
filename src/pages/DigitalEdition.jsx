@@ -160,6 +160,7 @@ const DigitalEdition = () => {
       const res = await fetch(`${backendURL}/api/getAllDigitalEditions`);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
+      console.log(data);
       setDigitalEditions(data);
     } catch (error) {
       console.error("Error:", error);
@@ -224,7 +225,7 @@ const DigitalEdition = () => {
                     {" "}
                     <User size={16} />
                   </span>
-                  <span>{edition.authorId.name}</span>
+                  <span>{edition?.authorId?.name}</span>
                 </div>
 
                 {/* Date */}
