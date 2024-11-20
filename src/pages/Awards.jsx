@@ -1,164 +1,141 @@
-import React, { useState, useEffect, useCallback } from "react";
-import ContainerImage from "../assets/images/Container.png"; // You can use the same image or a different one
-import ShortVideosSection from "../components/Cards/ShortVideoCards";
-import { EssentialNews } from "./Home";
-import TrendCard from "../components/Cards/TrendCard";
-import RegularCard from "../components/Cards/RegularCard";
-import RecommendCard from "../components/Cards/RecommendedCrad";
-import { CircularProgress } from "@mui/material";
-import backendURL from "../config";
+import React from "react";
+import Diamond from "../assets/images/diamond.png";
+import awardImage1 from "../assets/images/awardImage1.png";
+import awardImage2 from "../assets/images/awardImage2.png";
+import awardImage3 from "../assets/images/awardImage3.png";
+import awardImages from "../assets/images/awardImages.png";
+import { Link } from "react-router-dom";
+const truncateContent = (content, maxLength = 100) => {
+  if (!content) return "";
+  const strippedContent = content.replace(/<[^>]*>/g, "");
+  return strippedContent.length > maxLength
+    ? `${strippedContent.substring(0, maxLength)}...`
+    : strippedContent;
+};
 
-function Awards() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [awardsTrend, setAwardsTrend] = useState([]); // Change naming to reflect awards
-  const [regularAwardsItems, setRegularAwardsItems] = useState([]); // Change naming to reflect awards
-  const [recommendedAwardsItems, setRecommendedAwardsItems] = useState([]); // Change naming to reflect awards
-  const [news, setNews] = useState([]);
+const awardData = [
+  {
+    id: 1,
+    image: awardImage1,
+    awardTitle: "The Pride Of LAgos Awards",
+    description:
+      "Ornallis Sed ut vulputate nisi. Integer in felis sed leo vestibulum venenatis. Curabitur tempor qua eros tempus lacinia. Nam bi",
+    link: "https://theprideofnigeria.ng/",
+  },
+  {
+    id: 2,
+    image: awardImages,
+    awardTitle: "The Pride Of Abuja Awards",
+    description:
+      "Ornallis Sed ut vulputate nisi. Integer in felis sed leo vestibulum venenatis. Curabitur tempor qua eros tempus lacinia. Nam bi",
+    link: "https://theprideofnigeria.ng/",
+  },
+  {
+    id: 3,
+    image: awardImages,
 
-  const fetchAwardsData = useCallback(async (category, setData) => {
-    try {
-      const response = await fetch(
-        `${backendURL}/api/getAllFashion?category=${category}&postType=LifeStyle&subCategory=Awards`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch data");
-      }
-      const data = await response.json();
-      if (data?.posts) {
-        setData(data.posts);
-      } else {
-        setError("Invalid data format received");
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError(error.message);
-    }
-  }, []);
+    awardTitle: "The Pride Of Porthacourt Awards",
+    description:
+      "Ornallis Sed ut vulputate nisi. Integer in felis sed leo vestibulum venenatis. Curabitur tempor qua eros tempus lacinia. Nam bi",
+    link: "https://theprideofnigeria.ng/",
+  },
+  {
+    id: 3,
+    image: awardImage3,
+    awardTitle: "The Pride Of Ibadan Awards",
+    description:
+      "Ornallis Sed ut vulputate nisi. Integer in felis sed leo vestibulum venenatis. Curabitur tempor qua eros tempus lacinia. Nam bi",
+    link: "https://theprideofnigeria.ng/",
+  },
+  {
+    id: 3,
+    image: awardImages,
 
-  const fetchNews = useCallback(async () => {
-    try {
-      const res = await fetch(`${backendURL}/api/getAllNews`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status : ${res.status}`);
-      }
-      const data = await res.json();
-      setNews(data.posts.slice(0, 4));
-    } catch (error) {
-      console.error("Error fetching news:", error);
-      setError(error.message);
-    }
-  }, []);
+    awardTitle: "The Pride Of Enugu Awards",
+    description:
+      "Ornallis Sed ut vulputate nisi. Integer in felis sed leo vestibulum venenatis. Curabitur tempor qua eros tempus lacinia. Nam bi",
+    link: "https://theprideofnigeria.ng/",
+  },
+];
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([
-          fetchNews(),
-          fetchAwardsData("TopTrend", setAwardsTrend),
-          fetchAwardsData("Regular", setRegularAwardsItems),
-          fetchAwardsData("Recommended", setRecommendedAwardsItems),
-        ]);
-      } catch (error) {
-        setError("Failed to load awards data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [fetchNews, fetchAwardsData]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <CircularProgress />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
-
+const AwardCard = ({ image, link, awardTitle, description }) => {
   return (
-    <>
-      <div className="md:p-16 max-w-7xl mx-auto">
-        <h3 className="mid:mx-5 mid:mt-5">
-          Welcome to the Awards section! Here, we celebrate the achievements and
-          recognitions in various fields. Stay updated on the latest award
-          ceremonies, nominees, and winners!
-        </h3>
+    <Link target="_blank" to={link}>
+      <div className="bg-white rounded-lg overflow-hidden shadow-md flex flex-col sm:flex-row">
+        <img
+          src={image}
+          alt="award image"
+          className="w-full sm:w-1/2 h-48 sm:h-auto object-cover max-h-[15rem] hover:scale-105 transition duration-300 ease-in-out"
+        />
+        <div className="p-4 flex flex-col justify-between w-full sm:w-1/2">
+          <div className="text-3xl font-bold  p-2 rounded-lg mb-2 hover:text-HeroClr">
+            {awardTitle}
+          </div>
+          <p className="text-gray-600 text-sm hover:text-HeroClr">
+            {" "}
+            {truncateContent(description)}
+          </p>
 
-        {/* TrendCard */}
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 gap-8">
-            {awardsTrend.map((award) => (
-              <TrendCard key={award._id} trend={award} />
-            ))}
+          <div>
+            <Link target="_blank" to={link}>
+              <button className=" mid:mt-2 p-1 text-sm px-2 md:block bg-HeroClr text-white rounded-lg hover:border-2 hover:border-HeroClr hover:bg-transparent hover:text-HeroClr  uppercase">
+                Read More
+              </button>
+            </Link>
           </div>
         </div>
-        {/* TrendCard */}
+      </div>
+    </Link>
+  );
+};
 
-        {/* Advert */}
-        <span className="my-[2rem] flex justify-center">
-          <img
-            className="h-32 rounded-md w-[80%]"
-            src={ContainerImage}
-            alt="Container Image" // Add meaningful alt text
-          />
-        </span>
-        {/* Advert */}
+const AwardCards = () => {
+  return (
+    <>
+      <div className="md:p-16 mid:p-8 max-w-7xl mx-auto">
+        <div>
+          <h2 className="text-5xl font-medium mb-8 text-center text-green">
+            PRIDE OF NIGERIA<br></br>
+            <div className="flex justify-center gap-7">
+              <img src={Diamond} alt="" className="w-4 h-4 mt-3" />
+              <span className="text-green font-medium text-2xl">AWARD</span>
+              <img src={Diamond} alt="" className="w-4 h-4 mt-3" />
+            </div>
+          </h2>
+        </div>
+        {/* subHeading */}
+        <h3 className="mid:mx-5 mid:mt-5">
+          Pride of Nigeria’s regional awards celebrate incredible heroes
+          changing lives in their communities and beyond. Just like Pride of
+          Nigeria, the winners go to extraordinary lengths to help others,
+          display immense courage in the face of extreme challenges, and always
+          put others first, no matter what adversity they face themselves. Click
+          the links below to meet the winners, relive uplifting awards moments,
+          and find out how to nominate.
+        </h3>
 
-        {/* Regular Card */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-[6rem]">
           <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-black via-red-500 to-red-900 bg-clip-text text-transparent headFont">
-            ESSENTIAL AWARDS
+            Pride Of Nigeria Awards
           </h2>
           <div className="w-full mb-5">
             <hr className="border-t border-gray-500 w-full" />
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-6">
-            {regularAwardsItems.map((item) => (
-              <RegularCard key={item.id} item={item} />
-            ))}
-          </div>
         </div>
-        {/* Regular Card */}
-
-        {/* SHORT VIDEO SECTION */}
-        <ShortVideosSection />
-        {/* SHORT VIDEO SECTION */}
-      </div>
-
-      {/* Recommend Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-[6rem]">
-        <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-black via-red-500 to-red-900 bg-clip-text text-transparent headFont">
-          MORE ON AWARDS
-        </h2>
-
-        <div className="w-full mb-5">
-          <hr className="border-t border-gray-500 w-full" />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-6">
-          {recommendedAwardsItems.map((item) => (
-            <RecommendCard key={item._id} item={item} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {awardData.map((award) => (
+            <AwardCard
+              key={award.id}
+              image={award.image}
+              name={award.name}
+              awardTitle={award.awardTitle}
+              description={award.description}
+            />
           ))}
         </div>
       </div>
-
-      {/* ESSENTIAL NEWS */}
-      <EssentialNews news={news} />
-      {/* ESSENTIAL NEWS */}
     </>
   );
-}
+};
 
-export default Awards;
+export default AwardCards;

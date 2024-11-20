@@ -142,6 +142,213 @@ const MagazineFlipbook = () => {
   }, [isDragging, dragStart]);
 
   // Optimized page loading with chunking
+  //  const loadPdf = async (pdfPath) => {
+  //    try {
+  //      const pdf = await pdfjs.getDocument(`${backendURL}${pdfPath}`).promise;
+  //      setNumPages(pdf.numPages);
+
+  //      // Load pages in chunks for better performance
+  //      const chunkSize = 4;
+  //      const chunks = Math.ceil(pdf.numPages / chunkSize);
+
+  //      for (let chunk = 0; chunk < chunks; chunk++) {
+  //        const startPage = chunk * chunkSize + 1;
+  //        const endPage = Math.min((chunk + 1) * chunkSize, pdf.numPages);
+
+  //        // Load chunk of pages concurrently
+  //        const pagePromises = [];
+  //        for (let i = startPage; i <= endPage; i++) {
+  //          pagePromises.push(renderPage(pdf, i));
+  //        }
+
+  //        const renderedPages = await Promise.all(pagePromises);
+  //        const newPages = {};
+  //        renderedPages.forEach((pageData, index) => {
+  //          const pageNum = startPage + index;
+  //          newPages[pageNum] = pageData;
+  //        });
+
+  //        setLoadedPages((prev) => ({ ...prev, ...newPages }));
+  //        setLoadingProgress((endPage / pdf.numPages) * 100);
+  //      }
+  //    } catch (err) {
+  //      setError("Failed to load PDF");
+  //    }
+  //  };
+
+  //  const loadRemainingPages = async (pdf, startFrom) => {
+  //    const cache = { ...loadedPages };
+
+  //    for (let i = startFrom + 1; i <= pdf.numPages; i++) {
+  //      cache[i] = await renderPage(pdf, i);
+  //      setLoadedPages({ ...cache });
+  //      setLoadingProgress((i / pdf.numPages) * 100);
+  //    }
+  //  };
+
+  //  const renderPage = async (pdf, pageNum) => {
+  //    const page = await pdf.getPage(pageNum);
+  //    const viewport = page.getViewport({ scale: 1.5 });
+
+  //    // Create an offscreen canvas for better performance
+  //    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
+  //    const ctx = canvas.getContext("2d");
+
+  //    await page.render({ canvasContext: ctx, viewport }).promise;
+
+  //    // Convert to blob for better memory management
+  //    const blob = await canvas.convertToBlob();
+  //    return URL.createObjectURL(blob);
+  //  };
+
+  //  // Grid view component
+  //  const ThumbnailGrid = useMemo(() => {
+  //    if (!showThumbnails) return null;
+
+  //    return (
+  //      <div className="fixed inset-0 bg-black/90 z-50 overflow-auto">
+  //        <div className="max-w-7xl mx-auto p-4">
+  //          <div className="flex justify-between items-center mb-4">
+  //            <h2 className="text-white text-xl">All Pages</h2>
+  //            <button
+  //              onClick={() => setShowThumbnails(false)}
+  //              className="p-2 text-white hover:bg-white/10 rounded-full"
+  //            >
+  //              <X className="w-6 h-6" />
+  //            </button>
+  //          </div>
+
+  //          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+  //            {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
+  //              <PageThumbnail
+  //                key={pageNum}
+  //                pageNum={pageNum}
+  //                pageUrl={pageUrl}
+  //                isActive={
+  //                  Math.floor((parseInt(pageNum) - 1) / 2) === currentSpread
+  //                }
+  //                onClick={() => {
+  //                  setCurrentSpread(Math.floor((parseInt(pageNum) - 1) / 2));
+  //                  setShowThumbnails(false);
+  //                }}
+  //              />
+  //            ))}
+  //          </div>
+  //        </div>
+  //      </div>
+  //    );
+  //  }, [showThumbnails, loadedPages, currentSpread]);
+
+  //  // Enhanced page flipping animation
+
+  //  const getPageStyle = (pageNum) => {
+  //    const isRightPage = pageNum % 2 === 0; // Right page if even
+  //    const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
+  //    const isNextSpread = Math.floor((pageNum - 1) / 2) === currentSpread + 1;
+  //    const isPrevSpread = Math.floor((pageNum - 1) / 2) === currentSpread - 1;
+
+  //    let transform = "";
+  //    let zIndex = getPageZIndex(pageNum);
+
+  //    if (isFlipping) {
+  //      const flipDirection = isRightPage ? -1 : 1; // Determine flipping direction
+  //      if (isCurrentSpread || isNextSpread || isPrevSpread) {
+  //        // Adjust the rotation based on the flipping direction
+  //        transform = `
+  //               rotateY(${getFlipRotation(pageNum) * flipDirection}deg)
+  //               translateZ(${isCurrentSpread ? 20 : 0}px)
+  //           `;
+  //        zIndex = 1000; // Bring the flipping page to the front
+  //      }
+  //    }
+
+  //    return {
+  //      position: "absolute",
+  //      width: "50%",
+  //      height: "100%",
+  //      top: 0,
+  //      left: isRightPage ? "50%" : 0,
+  //      transformOrigin: isRightPage ? "left center" : "right center",
+  //      transition: isFlipping
+  //        ? "transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1.000)"
+  //        : "none",
+  //      transform,
+  //      zIndex,
+  //      backfaceVisibility: "hidden",
+  //      backgroundColor: "white",
+  //      boxShadow: isFlipping
+  //        ? "0 0 20px rgba(0,0,0,0.2)"
+  //        : "0 0 10px rgba(0,0,0,0.1)",
+  //    };
+  //  };
+  //  const getFlipRotation = (pageNum) => {
+  //    const isRightPage = pageNum % 2 === 0;
+  //    const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
+  //    const progress = isFlipping ? (isRightPage ? 180 : -180) : 0;
+
+  //    if (isCurrentSpread) {
+  //      return isRightPage ? progress : 0;
+  //    }
+  //    return isRightPage ? 0 : progress;
+  //  };
+
+  //  const getPageZIndex = (pageNum) => {
+  //    const spreadIndex = Math.floor((pageNum - 1) / 2);
+  //    const baseZIndex = 100 - Math.abs(spreadIndex - currentSpread);
+  //    return isFlipping && Math.abs(spreadIndex - currentSpread) <= 1
+  //      ? 1000 + baseZIndex
+  //      : baseZIndex;
+  //  };
+
+  //  // Enhanced flip animation
+  //  const flip = async (direction) => {
+  //    if (isFlipping) return;
+
+  //    const nextSpread =
+  //      direction === "next"
+  //        ? Math.min(currentSpread + 1, Math.floor((numPages - 1) / 2))
+  //        : Math.max(currentSpread - 1, 0);
+
+  //    if (nextSpread === currentSpread) return;
+
+  //    // Add page curl shadow during flip
+  //    const addPageCurlShadow = (pageElement) => {
+  //      const shadow = document.createElement("div");
+  //      shadow.style.cssText = `
+  //       position: absolute;
+  //       top: 0;
+  //       bottom: 0;
+  //       width: 100%;
+  //       background: linear-gradient(
+  //         to right,
+  //         rgba(0,0,0,0.2) 0%,
+  //         rgba(0,0,0,0) 100%
+  //       );
+  //       opacity: 0;
+  //       transition: opacity 0.8s;
+  //     `;
+  //      pageElement.appendChild(shadow);
+  //      requestAnimationFrame(() => (shadow.style.opacity = "1"));
+  //    };
+
+  //    setIsFlipping(true);
+
+  //    // Add temporary shadows for realistic effect
+  //    const currentPages = document.querySelectorAll(".book-page");
+  //    currentPages.forEach(addPageCurlShadow);
+
+  //    setTimeout(() => {
+  //      setCurrentSpread(nextSpread);
+  //      setIsFlipping(false);
+
+  //      // Remove temporary shadows
+  //      currentPages.forEach((page) => {
+  //        const shadow = page.querySelector("div");
+  //        if (shadow) shadow.remove();
+  //      });
+  //    }, 800);
+  //  };
+
   const loadPdf = async (pdfPath) => {
     try {
       const pdf = await pdfjs.getDocument(`${backendURL}${pdfPath}`).promise;
@@ -176,71 +383,6 @@ const MagazineFlipbook = () => {
     }
   };
 
-  const loadRemainingPages = async (pdf, startFrom) => {
-    const cache = { ...loadedPages };
-
-    for (let i = startFrom + 1; i <= pdf.numPages; i++) {
-      cache[i] = await renderPage(pdf, i);
-      setLoadedPages({ ...cache });
-      setLoadingProgress((i / pdf.numPages) * 100);
-    }
-  };
-
-  const renderPage = async (pdf, pageNum) => {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.5 });
-
-    // Create an offscreen canvas for better performance
-    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
-    const ctx = canvas.getContext("2d");
-
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    // Convert to blob for better memory management
-    const blob = await canvas.convertToBlob();
-    return URL.createObjectURL(blob);
-  };
-
-  // Grid view component
-  const ThumbnailGrid = useMemo(() => {
-    if (!showThumbnails) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/90 z-50 overflow-auto">
-        <div className="max-w-7xl mx-auto p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white text-xl">All Pages</h2>
-            <button
-              onClick={() => setShowThumbnails(false)}
-              className="p-2 text-white hover:bg-white/10 rounded-full"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
-              <PageThumbnail
-                key={pageNum}
-                pageNum={pageNum}
-                pageUrl={pageUrl}
-                isActive={
-                  Math.floor((parseInt(pageNum) - 1) / 2) === currentSpread
-                }
-                onClick={() => {
-                  setCurrentSpread(Math.floor((parseInt(pageNum) - 1) / 2));
-                  setShowThumbnails(false);
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }, [showThumbnails, loadedPages, currentSpread]);
-
-  // Enhanced page flipping animation
-
   const getPageStyle = (pageNum) => {
     const isRightPage = pageNum % 2 === 0; // Right page if even
     const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
@@ -255,9 +397,9 @@ const MagazineFlipbook = () => {
       if (isCurrentSpread || isNextSpread || isPrevSpread) {
         // Adjust the rotation based on the flipping direction
         transform = `
-                rotateY(${getFlipRotation(pageNum) * flipDirection}deg)
-                translateZ(${isCurrentSpread ? 20 : 0}px)
-            `;
+            rotateY(${getFlipRotation(pageNum) * flipDirection}deg)
+            translateZ(${isCurrentSpread ? 20 : 0}px)
+        `;
         zIndex = 1000; // Bring the flipping page to the front
       }
     }
@@ -281,26 +423,7 @@ const MagazineFlipbook = () => {
         : "0 0 10px rgba(0,0,0,0.1)",
     };
   };
-  const getFlipRotation = (pageNum) => {
-    const isRightPage = pageNum % 2 === 0;
-    const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
-    const progress = isFlipping ? (isRightPage ? 180 : -180) : 0;
 
-    if (isCurrentSpread) {
-      return isRightPage ? progress : 0;
-    }
-    return isRightPage ? 0 : progress;
-  };
-
-  const getPageZIndex = (pageNum) => {
-    const spreadIndex = Math.floor((pageNum - 1) / 2);
-    const baseZIndex = 100 - Math.abs(spreadIndex - currentSpread);
-    return isFlipping && Math.abs(spreadIndex - currentSpread) <= 1
-      ? 1000 + baseZIndex
-      : baseZIndex;
-  };
-
-  // Enhanced flip animation
   const flip = async (direction) => {
     if (isFlipping) return;
 
@@ -311,37 +434,32 @@ const MagazineFlipbook = () => {
 
     if (nextSpread === currentSpread) return;
 
-    // Add page curl shadow during flip
-    const addPageCurlShadow = (pageElement) => {
-      const shadow = document.createElement("div");
-      shadow.style.cssText = `
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 100%;
-        background: linear-gradient(
-          to right,
-          rgba(0,0,0,0.2) 0%,
-          rgba(0,0,0,0) 100%
-        );
-        opacity: 0;
-        transition: opacity 0.8s;
-      `;
-      pageElement.appendChild(shadow);
-      requestAnimationFrame(() => (shadow.style.opacity = "1"));
-    };
-
     setIsFlipping(true);
 
     // Add temporary shadows for realistic effect
     const currentPages = document.querySelectorAll(".book-page");
-    currentPages.forEach(addPageCurlShadow);
+    currentPages.forEach((page) => {
+      const shadow = document.createElement("div");
+      shadow.style.cssText = `
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(0,0,0,0.2) 0%,
+        rgba(0,0,0,0) 100%
+      );
+      opacity: 0;
+      transition: opacity 0.8s;
+    `;
+      page.appendChild(shadow);
+      requestAnimationFrame(() => (shadow.style.opacity = "1"));
+    });
 
     setTimeout(() => {
       setCurrentSpread(nextSpread);
       setIsFlipping(false);
-
-      // Remove temporary shadows
       currentPages.forEach((page) => {
         const shadow = page.querySelector("div");
         if (shadow) shadow.remove();
@@ -349,6 +467,46 @@ const MagazineFlipbook = () => {
     }, 800);
   };
 
+  // Responsive styles for page layout
+  const getResponsivePageStyle = (pageNum) => {
+    const isRightPage = pageNum % 2 === 0;
+    const isCurrentSpread = Math.floor((pageNum - 1) / 2) === currentSpread;
+
+    return {
+      position: "absolute",
+      width: "100%", // Full width for stacking on smaller screens
+      height: "100%",
+      top: isRightPage ? "0" : "0", // Stack vertically
+      left: isRightPage ? "0" : "0",
+      transform: isCurrentSpread ? "translateY(0)" : "translateY(100%)", // Adjust for current spread
+      transition: "transform 0.5s ease",
+      backfaceVisibility: "hidden",
+      backgroundColor: "white",
+      boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+    };
+  };
+
+  // In your render method, use the responsive style
+  {
+    Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
+      <div
+        key={pageNum}
+        style={
+          isFlipping
+            ? getPageStyle(parseInt(pageNum))
+            : getResponsivePageStyle(parseInt(pageNum))
+        }
+        className="book-page"
+      >
+        <img
+          src={pageUrl}
+          alt={`Page ${pageNum}`}
+          className="w-full h-full object-contain"
+          draggable={false}
+        />
+      </div>
+    ));
+  }
   useEffect(() => {
     const fetchEdition = async () => {
       try {
@@ -637,6 +795,12 @@ const MagazineFlipbook = () => {
         }
         .book-page:hover {
           box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+        }
+        @media (max-width: 768px) {
+          .book-page {
+            width: 100%; // Full width for mobile
+            height: auto; // Adjust height for mobile
+          }
         }
       `}</style>
     </div>

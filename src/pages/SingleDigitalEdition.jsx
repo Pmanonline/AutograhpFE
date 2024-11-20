@@ -11,103 +11,36 @@ import {
   Loader2,
   Download,
   Share2,
+  Eye,
   Heart,
+  Calendar,
+  FileText,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import backendURL from "../config";
+import moment from "moment";
 
-// Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
-// Create a cache instance
-const pageCache = new Map();
-const pdfCache = new Map();
-
-// Create a priority queue for page loading
-class PageLoadQueue {
-  constructor() {
-    this.queue = [];
-    this.processing = false;
-  }
-
-  add(pageNum, priority) {
-    const existingIndex = this.queue.findIndex(
-      (item) => item.pageNum === pageNum
-    );
-    if (existingIndex !== -1) {
-      this.queue[existingIndex].priority = Math.max(
-        this.queue[existingIndex].priority,
-        priority
-      );
-      this.queue.sort((a, b) => b.priority - a.priority);
-    } else {
-      this.queue.push({ pageNum, priority });
-      this.queue.sort((a, b) => b.priority - a.priority);
-    }
-  }
-
-  async process(renderCallback) {
-    if (this.processing || this.queue.length === 0) return;
-    this.processing = true;
-
-    const { pageNum } = this.queue.shift();
-    try {
-      await renderCallback(pageNum);
-    } catch (error) {
-      console.error(`Error processing page ${pageNum}:`, error);
-    }
-    this.processing = false;
-    this.process(renderCallback);
-  }
-}
-
-const loadQueue = new PageLoadQueue();
-
-// Thumbnail component with loading optimization
-const PageThumbnail = React.memo(
-  ({ pageNum, onClick, isActive, loadedPages }) => {
-    const [thumbnailUrl, setThumbnailUrl] = useState(null);
-
-    useEffect(() => {
-      if (loadedPages[pageNum]) {
-        // Generate a low-resolution thumbnail
-        const img = new Image();
-        img.src = loadedPages[pageNum];
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.width = img.width * 0.2; // 20% of original size
-          canvas.height = img.height * 0.2;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          setThumbnailUrl(canvas.toDataURL("image/jpeg", 0.5));
-        };
-      }
-    }, [loadedPages[pageNum]]);
-
-    return (
-      <div
-        onClick={onClick}
-        className={`relative cursor-pointer transition-all duration-200 ${
-          isActive ? "ring-2 ring-blue-500" : "hover:ring-2 hover:ring-gray-400"
-        }`}
-      >
-        {thumbnailUrl ? (
-          <img
-            src={thumbnailUrl}
-            alt={`Page ${pageNum}`}
-            className="w-full h-full object-contain rounded-lg shadow-md"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 animate-pulse rounded-lg" />
-        )}
-        <span className="absolute bottom-2 right-2 bg-black/60 text-white/90 text-xs px-2 py-1 rounded-full">
-          {pageNum}
-        </span>
-      </div>
-    );
-  }
-);
+// Thumbnail component remains the same
+const PageThumbnail = React.memo(({ pageUrl, pageNum, onClick, isActive }) => (
+  <div
+    onClick={onClick}
+    className={`relative cursor-pointer transition-all duration-200 ${
+      isActive ? "ring-2 ring-blue-500" : "hover:ring-2 hover:ring-gray-400"
+    }`}
+  >
+    <img
+      src={pageUrl}
+      alt={`Page ${pageNum}`}
+      className="w-full h-full object-contain rounded-lg shadow-md"
+      loading="lazy"
+    />
+    <span className="absolute bottom-2 right-2 bg-black/60 text-white/90 text-xs px-2 py-1 rounded-full">
+      {pageNum}
+    </span>
+  </div>
+));
 
 const MagazineFlipbook = () => {
   const { slug } = useParams();
@@ -130,163 +63,8 @@ const MagazineFlipbook = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
-  const [initialPagesLoaded, setInitialPagesLoaded] = useState(false);
-  const [loadingPhase, setLoadingPhase] = useState("initial"); // 'initial', 'preview', 'complete'
-  const abortControllerRef = useRef(null);
 
-  // Optimized PDF loading function
-  const loadPdf = async (pdfPath) => {
-    try {
-      // Check cache first
-      let pdf = pdfCache.get(pdfPath);
-
-      if (!pdf) {
-        // Cancel any ongoing loads
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-        abortControllerRef.current = new AbortController();
-
-        // Load PDF with progress tracking
-        const loadingTask = pdfjs.getDocument({
-          url: `${backendURL}${pdfPath}`,
-          signal: abortControllerRef.current.signal,
-        });
-
-        loadingTask.onProgress = ({ loaded, total }) => {
-          setLoadingProgress((loaded / total) * 100);
-        };
-
-        pdf = await loadingTask.promise;
-        pdfCache.set(pdfPath, pdf);
-      }
-
-      setNumPages(pdf.numPages);
-
-      // Load initial visible pages immediately
-      const initialPages = getVisiblePages(currentSpread);
-      await loadPagesInRange(pdf, initialPages.start, initialPages.end);
-      setInitialPagesLoaded(true);
-
-      // Load preview quality versions of remaining pages
-      loadPreviewPages(pdf);
-
-      // Load full quality versions in the background
-      loadRemainingPagesInBackground(pdf);
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      setError("Failed to load PDF");
-    }
-  };
-
-  // Helper function to determine visible page range
-  const getVisiblePages = (spread) => {
-    const start = Math.max(spread * 2 - 2, 1);
-    const end = Math.min(spread * 2 + 3, numPages);
-    return { start, end };
-  };
-
-  // Load pages in a specific range
-  const loadPagesInRange = async (pdf, start, end) => {
-    const pagePromises = [];
-    for (let i = start; i <= end; i++) {
-      if (!loadedPages[i]) {
-        pagePromises.push(renderPage(pdf, i));
-      }
-    }
-    const renderedPages = await Promise.all(pagePromises);
-    const newPages = {};
-    renderedPages.forEach((pageData, index) => {
-      const pageNum = start + index;
-      newPages[pageNum] = pageData;
-    });
-    setLoadedPages((prev) => ({ ...prev, ...newPages }));
-  };
-
-  // Load preview quality versions of pages
-  const loadPreviewPages = async (pdf) => {
-    setLoadingPhase("preview");
-    for (let i = 1; i <= pdf.numPages; i++) {
-      if (!loadedPages[i]) {
-        loadQueue.add(i, getPagePriority(i));
-      }
-    }
-    loadQueue.process(async (pageNum) => {
-      const pageData = await renderPage(pdf, pageNum, 0.5); // Lower quality
-      setLoadedPages((prev) => ({ ...prev, [pageNum]: pageData }));
-    });
-  };
-
-  // Load full quality versions in background
-  const loadRemainingPagesInBackground = async (pdf) => {
-    setLoadingPhase("complete");
-    const worker = new Worker("/pdfWorker.js"); // You'll need to create this worker
-
-    worker.onmessage = (e) => {
-      const { pageNum, pageData } = e.data;
-      setLoadedPages((prev) => ({ ...prev, [pageNum]: pageData }));
-    };
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      worker.postMessage({ pdf, pageNum: i });
-    }
-  };
-
-  // Optimized page rendering with quality control
-  const renderPage = async (pdf, pageNum, quality = 1) => {
-    // Check cache first
-    const cacheKey = `${pageNum}-${quality}`;
-    if (pageCache.has(cacheKey)) {
-      return pageCache.get(cacheKey);
-    }
-
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.5 * quality });
-
-    // Use OffscreenCanvas for better performance
-    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
-    const ctx = canvas.getContext("2d");
-
-    await page.render({
-      canvasContext: ctx,
-      viewport,
-      background: "rgb(255, 255, 255)",
-    }).promise;
-
-    const blob = await canvas.convertToBlob({
-      type: "image/jpeg",
-      quality: quality,
-    });
-    const url = URL.createObjectURL(blob);
-
-    // Cache the result
-    pageCache.set(cacheKey, url);
-
-    return url;
-  };
-
-  // Calculate page loading priority
-  const getPagePriority = (pageNum) => {
-    const currentPage = currentSpread * 2;
-    const distance = Math.abs(pageNum - currentPage);
-    return 1 / (distance + 1);
-  };
-
-  // Cleanup function
-  useEffect(() => {
-    return () => {
-      // Cleanup cached URLs
-      pageCache.forEach((url) => URL.revokeObjectURL(url));
-      pageCache.clear();
-
-      // Abort any ongoing loads
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  // ... (rest of your component code remains the same)
+  // Add drag handling functions
   const handleMouseDown = (e) => {
     if (scale <= 1) return;
     setIsDragging(true);
@@ -366,6 +144,41 @@ const MagazineFlipbook = () => {
     };
   }, [isDragging, dragStart]);
 
+  // Optimized page loading with chunking
+  const loadPdf = async (pdfPath) => {
+    try {
+      const pdf = await pdfjs.getDocument(`${backendURL}${pdfPath}`).promise;
+      setNumPages(pdf.numPages);
+
+      // Load pages in chunks for better performance
+      const chunkSize = 4;
+      const chunks = Math.ceil(pdf.numPages / chunkSize);
+
+      for (let chunk = 0; chunk < chunks; chunk++) {
+        const startPage = chunk * chunkSize + 1;
+        const endPage = Math.min((chunk + 1) * chunkSize, pdf.numPages);
+
+        // Load chunk of pages concurrently
+        const pagePromises = [];
+        for (let i = startPage; i <= endPage; i++) {
+          pagePromises.push(renderPage(pdf, i));
+        }
+
+        const renderedPages = await Promise.all(pagePromises);
+        const newPages = {};
+        renderedPages.forEach((pageData, index) => {
+          const pageNum = startPage + index;
+          newPages[pageNum] = pageData;
+        });
+
+        setLoadedPages((prev) => ({ ...prev, ...newPages }));
+        setLoadingProgress((endPage / pdf.numPages) * 100);
+      }
+    } catch (err) {
+      setError("Failed to load PDF");
+    }
+  };
+
   const loadRemainingPages = async (pdf, startFrom) => {
     const cache = { ...loadedPages };
 
@@ -374,6 +187,21 @@ const MagazineFlipbook = () => {
       setLoadedPages({ ...cache });
       setLoadingProgress((i / pdf.numPages) * 100);
     }
+  };
+
+  const renderPage = async (pdf, pageNum) => {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.5 });
+
+    // Create an offscreen canvas for better performance
+    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
+    const ctx = canvas.getContext("2d");
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // Convert to blob for better memory management
+    const blob = await canvas.convertToBlob();
+    return URL.createObjectURL(blob);
   };
 
   // Grid view component
@@ -612,223 +440,314 @@ const MagazineFlipbook = () => {
     }
   };
   return (
-    <>
-      <div className="sm:container mx-auto px-0 py-3">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <main className="lg:w-[75%]">
-            <div className="relative w-full h-screen overflow-hidden">
-              {loadingPhase !== "complete" && (
-                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {loadingPhase === "initial"
-                    ? "Loading initial pages..."
-                    : "Loading preview..."}
-                </div>
-              )}
-              <div className="absolute inset-x-0 top-16 bottom-16">
+    <div className="sm:container mx-auto px-0 py-3">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <main className="lg:w-[75%]">
+          <div className="relative w-full h-screen overflow-hidden">
+            <div className="absolute inset-x-0 top-16 bottom-16">
+              <div
+                ref={containerRef}
+                className="relative h-full flex items-center justify-center p-2 overflow-hidden"
+                onMouseDown={handleMouseDown}
+                style={{
+                  cursor:
+                    scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+                }}
+              >
                 <div
-                  ref={containerRef}
-                  className="relative h-full flex items-center justify-center p-2 overflow-hidden"
-                  onMouseDown={handleMouseDown}
+                  ref={bookRef}
+                  className="relative w-full max-w-5xl h-[calc(100vh-8rem)] perspective-2000"
                   style={{
-                    cursor:
-                      scale > 1
-                        ? isDragging
-                          ? "grabbing"
-                          : "grab"
-                        : "default",
+                    transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+                    transition: isDragging ? "none" : "transform 0.3s ease",
                   }}
                 >
-                  <div
-                    ref={bookRef}
-                    className="relative w-full max-w-5xl h-[calc(100vh-8rem)] perspective-2000"
-                    style={{
-                      transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-                      transition: isDragging ? "none" : "transform 0.3s ease",
-                    }}
-                  >
-                    {/* Rest of the book content remains the same */}
-                    <div className="relative w-full h-full bg-white rounded-lg shadow-2xl preserve-3d">
-                      {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
-                        <div
-                          key={pageNum}
-                          style={getPageStyle(parseInt(pageNum))}
-                          className="book-page absolute rounded-lg overflow-hidden shadow-lg "
-                        >
-                          <img
-                            src={pageUrl}
-                            alt={`Page ${pageNum}`}
-                            className="w-full h-full object-contain"
-                            draggable={false}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {/* Navigation buttons */}
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between">
-                      <button
-                        onClick={() => flip("prev")}
-                        disabled={currentSpread === 0 || isFlipping}
-                        className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
-                        transition-all hover:scale-110 disabled:hover:scale-100"
-                      >
-                        <ChevronLeft className="w-6 h-6" />
-                      </button>
-
-                      <button
-                        onClick={() => flip("next")}
-                        disabled={
-                          currentSpread >= Math.floor((numPages - 1) / 2) ||
-                          isFlipping
-                        }
-                        className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
-                        transition-all hover:scale-110 disabled:hover:scale-100"
-                      >
-                        <ChevronRight className="w-6 h-6" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {ThumbnailGrid}
-
-              {/* Bottom controls */}
-              <div className="absolute bottom-[-0.5rem] left-0 right-0 h-16 bg-gray-800  rounded-b-3xl backdrop-blur-sm z-10 ">
-                <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between px-4">
-                  <div className="flex items-center gap-4">
-                    <span className="text-white/90 text-xs">
-                      PDF {currentPdfIndex + 1}/{edition?.image2?.length} | Page{" "}
-                      {currentSpread * 2 + 1}-
-                      {Math.min(currentSpread * 2 + 2, numPages)}/{numPages}
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
-                        className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                      >
-                        <ZoomOut className="w-4 h-4" />
-                      </button>
-                      <span className="text-white/90 text-xs min-w-[3ch] text-center">
-                        {Math.round(scale * 100)}%
-                      </span>
-                      <button
-                        onClick={() => setScale((s) => Math.min(s + 0.1, 2))}
-                        className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                      >
-                        <ZoomIn className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleShare}
-                      className="p-2 text-white hover:bg-gray-700 rounded"
-                      title="Share"
-                    >
-                      <Share2 className="w-5 h-5" />
-                    </button>
-
-                    <button
-                      onClick={handleDownload}
-                      className="p-2 text-white hover:bg-gray-700 rounded"
-                      title="Download"
-                    >
-                      <Download className="w-5 h-5" />
-                    </button>
-
-                    <button
-                      onClick={handleLike}
-                      className={`p-2 hover:bg-gray-700 rounded ${
-                        liked ? "text-red-500" : "text-white"
-                      }`}
-                      title="Like"
-                    >
-                      <Heart
-                        className="w-5 h-5"
-                        fill={liked ? "currentColor" : "none"}
-                      />
-                    </button>
-                    <button
-                      onClick={() => setShowThumbnails(!showThumbnails)}
-                      className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                    >
-                      <Grid className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => containerRef.current?.requestFullscreen()}
-                      className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
-                    >
-                      <Maximize2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              {/* Loading overlay with progress */}
-              {loadingProgress < 100 && !error && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                  <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-8 h-8 text-white animate-spin" />
-                    <div className="w-64 bg-white/20 rounded-full h-2">
+                  {/* Rest of the book content remains the same */}
+                  <div className="relative w-full h-full bg-white rounded-lg shadow-2xl preserve-3d">
+                    {Object.entries(loadedPages).map(([pageNum, pageUrl]) => (
                       <div
-                        className="bg-white rounded-full h-2 transition-all duration-300"
-                        style={{ width: `${loadingProgress}%` }}
-                      />
-                    </div>
-                    <p className="text-white/90">
-                      Loading pages... {Math.round(loadingProgress)}%
-                    </p>
+                        key={pageNum}
+                        style={getPageStyle(parseInt(pageNum))}
+                        className="book-page absolute rounded-lg overflow-hidden shadow-lg "
+                      >
+                        <img
+                          src={pageUrl}
+                          alt={`Page ${pageNum}`}
+                          className="w-full h-full object-contain"
+                          draggable={false}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Navigation buttons */}
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between">
+                    <button
+                      onClick={() => flip("prev")}
+                      disabled={currentSpread === 0 || isFlipping}
+                      className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
+                        transition-all hover:scale-110 disabled:hover:scale-100"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+
+                    <button
+                      onClick={() => flip("next")}
+                      disabled={
+                        currentSpread >= Math.floor((numPages - 1) / 2) ||
+                        isFlipping
+                      }
+                      className="p-3 rounded-full bg-black/40 text-white/90 hover:bg-black/60 disabled:opacity-30
+                        transition-all hover:scale-110 disabled:hover:scale-100"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* other related Editions */}
-            <h2>related editions</h2>
-          </main>
-          <aside className="lg:w-[25%] p-2 mt-12">
-            <div className="advert-box bg-white shadow-md rounded-lg overflow-hidden Nlg:hidden">
-              <img
-                src="https://alexis.lindaikejisblog.com/photos/shares/5b98d7b857a99.jpg" // Replace with your advert image URL
-                alt="Advert"
-                className="w-full h-auto"
-              />
-              <div className="p-4">
-                <h3 className="text-lg font-semibold">Advert </h3>
-                <p className="text-gray-600">
-                  This is a brief description of the advert. It can include
-                  details about the product or service being advertised.
-                </p>
-                <a
-                  href="https://example.com" // Replace with your advert link
-                  className="inline-block mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition"
-                >
-                  Learn More
-                </a>
               </div>
             </div>
-          </aside>
-        </div>
+            {ThumbnailGrid}
 
-        <style jsx>{`
-          .perspective-2000 {
-            perspective: 2500px;
-          }
-          .preserve-3d {
-            transform-style: preserve-3d;
-          }
-          .book-page {
-            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
-              box-shadow 0.8s ease;
-            user-select: none;
-          }
-          .book-page:hover {
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-          }
-        `}</style>
+            {/* Bottom controls */}
+            <div className="absolute bottom-[-0.5rem] left-0 right-0 h-16 bg-gray-800  rounded-b-3xl backdrop-blur-sm z-10 ">
+              <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between px-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-white/90 text-xs">
+                    PDF {currentPdfIndex + 1}/{edition?.image2?.length} | Page{" "}
+                    {currentSpread * 2 + 1}-
+                    {Math.min(currentSpread * 2 + 2, numPages)}/{numPages}
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))}
+                      className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <span className="text-white/90 text-xs min-w-[3ch] text-center">
+                      {Math.round(scale * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setScale((s) => Math.min(s + 0.1, 2))}
+                      className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleShare}
+                    className="p-2 text-white hover:bg-gray-700 rounded"
+                    title="Share"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={handleDownload}
+                    className="p-2 text-white hover:bg-gray-700 rounded"
+                    title="Download"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={handleLike}
+                    className={`p-2 hover:bg-gray-700 rounded ${
+                      liked ? "text-red-500" : "text-white"
+                    }`}
+                    title="Like"
+                  >
+                    <Heart
+                      className="w-5 h-5"
+                      fill={liked ? "currentColor" : "none"}
+                    />
+                  </button>
+                  <button
+                    onClick={() => setShowThumbnails(!showThumbnails)}
+                    className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                  >
+                    <Grid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => containerRef.current?.requestFullscreen()}
+                    className="p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            {/* Loading overlay with progress */}
+            {loadingProgress < 100 && !error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-4">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                  <div className="w-64 bg-white/20 rounded-full h-2">
+                    <div
+                      className="bg-white rounded-full h-2 transition-all duration-300"
+                      style={{ width: `${loadingProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-white/90">
+                    Loading pages... {Math.round(loadingProgress)}%
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          {/* other related Editions */}
+          <section>
+            <RelatedDigitalEditions slug={slug} />
+          </section>
+        </main>
+        <aside className="lg:w-[25%] p-2 mt-12">
+          <div className="advert-box bg-white shadow-md rounded-lg overflow-hidden Nlg:hidden">
+            <img
+              src="https://alexis.lindaikejisblog.com/photos/shares/5b98d7b857a99.jpg" // Replace with your advert image URL
+              alt="Advert"
+              className="w-full h-auto"
+            />
+            <div className="p-4">
+              <h3 className="text-lg font-semibold">Advert </h3>
+              <p className="text-gray-600">
+                This is a brief description of the advert. It can include
+                details about the product or service being advertised.
+              </p>
+              <a
+                href="https://example.com" // Replace with your advert link
+                className="inline-block mt-2 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition"
+              >
+                Learn More
+              </a>
+            </div>
+          </div>
+        </aside>
       </div>
-    </>
+
+      <style jsx>{`
+        .perspective-2000 {
+          perspective: 2500px;
+        }
+        .preserve-3d {
+          transform-style: preserve-3d;
+        }
+        .book-page {
+          transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1),
+            box-shadow 0.8s ease;
+          user-select: none;
+        }
+        .book-page:hover {
+          box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+        }
+      `}</style>
+    </div>
   );
 };
 
 export default MagazineFlipbook;
+
+export const RelatedDigitalEditions = ({ slug }) => {
+  const [relatedEditions, setRelatedEditions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchRelatedEditions = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `${backendURL}/api/getAllDigitalEditions2`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Exclude the current slug and limit to 6 items
+        const filteredEditions = data.digitalEditions
+          .filter((edition) => edition.slug !== slug) // Exclude the current slug
+          .slice(0, 6); // Limit to 6 items
+
+        setRelatedEditions(filteredEditions);
+      } catch (error) {
+        console.error("Error fetching related editions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchRelatedEditions();
+    }
+  }, [slug]);
+
+  const handleCardClick = (slug) => {
+    navigate(`/digital-edition/${slug}`);
+    window.scrollTo(0, 0);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+      </div>
+    );
+  }
+
+  if (relatedEditions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-12 mid:px-5">
+      <h2 className="text-2xl font-bold mb-6">Related Editions</h2>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {relatedEditions.map((edition) => (
+          <div
+            key={edition._id}
+            onClick={() => handleCardClick(edition.slug)}
+            className="group relative h-[250px] overflow-hidden rounded-lg shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer"
+          >
+            {/* Main Image */}
+            <img
+              src={`${backendURL}${edition.image1}`}
+              alt={edition.title}
+              className="h-full w-full object-cover"
+            />
+
+            {/* Category Badge */}
+            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-0.5 rounded text-xs font-semibold">
+              {edition.category}
+            </div>
+
+            {/* Hover Overlay */}
+            <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-3 text-center">
+              <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 flex flex-col items-center space-y-2">
+                <Eye size={20} className="text-white" />
+
+                <h3 className="text-sm font-bold text-white line-clamp-2">
+                  {edition.title}
+                </h3>
+
+                <div className="flex items-center space-x-1 text-white/90 text-xs">
+                  <Calendar size={12} />
+                  <span>{moment(edition.updatedAt).format("MMM D, YYYY")}</span>
+                </div>
+
+                <div className="flex items-center space-x-1 text-white/90 text-xs">
+                  <Heart size={12} />
+                  <span>{edition.likes?.length || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};

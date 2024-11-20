@@ -116,7 +116,12 @@ export default function Home() {
     try {
       setLoading(true);
       const response = await fetch(
-        `${backendURL}/api/getAllFashion?category=TopTrend&postType=Fashion`
+        `${backendURL}/api/getAllFashion?category=TopTrend&postType=Fashion`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch fashion trends");

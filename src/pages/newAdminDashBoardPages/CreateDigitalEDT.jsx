@@ -146,57 +146,57 @@
 //     setFormData((prev) => ({ ...prev, [name]: value }));
 //   };
 
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setLoading(true);
+// const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   setLoading(true);
 
-//     try {
-//       const digitalEditionFormData = new FormData();
-//       Object.entries(formData).forEach(([key, value]) => {
-//         if (value !== null && value !== undefined && value !== "") {
-//           digitalEditionFormData.append(key, value);
-//         }
-//       });
-
-//       if (fileInputs.image1 instanceof File) {
-//         digitalEditionFormData.append("image1", fileInputs.image1);
+//   try {
+//     const digitalEditionFormData = new FormData();
+//     Object.entries(formData).forEach(([key, value]) => {
+//       if (value !== null && value !== undefined && value !== "") {
+//         digitalEditionFormData.append(key, value);
 //       }
-//       if (fileInputs.image2.length > 0) {
-//         fileInputs.image2.forEach((file) => {
-//           digitalEditionFormData.append("image2", file);
-//         });
-//       }
+//     });
 
-//       const url = digitalEditionId
-//         ? `${backendURL}/api/updateDigitalEdition/${digitalEditionId}`
-//         : `${backendURL}/api/createDigitalEdition`;
-//       const method = digitalEditionId ? "PUT" : "POST";
-
-//       const response = await fetch(url, {
-//         method,
-//         body: digitalEditionFormData,
-//       });
-
-//       if (!response.ok) {
-//         const errorData = await response.json();
-//         throw new Error(errorData.message || "Failed to save digital edition");
-//       }
-
-//       const data = await response.json();
-//       showSnackbar(
-//         digitalEditionId
-//           ? "Digital Edition updated successfully"
-//           : "Digital Edition created successfully",
-//         "success"
-//       );
-//       navigate("/DashBoard/Admin/DigialEditions");
-//     } catch (error) {
-//       console.error("Error saving digital edition:", error);
-//       showSnackbar(error.message || "Failed to save digital edition", "error");
-//     } finally {
-//       setLoading(false);
+//     if (fileInputs.image1 instanceof File) {
+//       digitalEditionFormData.append("image1", fileInputs.image1);
 //     }
-//   };
+//     if (fileInputs.image2.length > 0) {
+//       fileInputs.image2.forEach((file) => {
+//         digitalEditionFormData.append("image2", file);
+//       });
+//     }
+
+//     const url = digitalEditionId
+//       ? `${backendURL}/api/updateDigitalEdition/${digitalEditionId}`
+//       : `${backendURL}/api/createDigitalEdition`;
+//     const method = digitalEditionId ? "PUT" : "POST";
+
+//     const response = await fetch(url, {
+//       method,
+//       body: digitalEditionFormData,
+//     });
+
+//     if (!response.ok) {
+//       const errorData = await response.json();
+//       throw new Error(errorData.message || "Failed to save digital edition");
+//     }
+
+//     const data = await response.json();
+//     showSnackbar(
+//       digitalEditionId
+//         ? "Digital Edition updated successfully"
+//         : "Digital Edition created successfully",
+//       "success"
+//     );
+//     navigate("/DashBoard/Admin/DigialEditions");
+//   } catch (error) {
+//     console.error("Error saving digital edition:", error);
+//     showSnackbar(error.message || "Failed to save digital edition", "error");
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 
 //   const showSnackbar = (message, severity) => {
 //     setSnackbar({ open: true, message, severity });
@@ -522,6 +522,63 @@ const DigitalEditionForm = () => {
     });
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+
+  //   try {
+  //     const digitalEditionFormData = new FormData();
+  //     Object.entries(formData).forEach(([key, value]) => {
+  //       if (value !== null && value !== undefined && value !== "") {
+  //         digitalEditionFormData.append(key, value);
+  //       }
+  //     });
+
+  //     if (fileInputs.image1 instanceof File) {
+  //       digitalEditionFormData.append("image1", fileInputs.image1);
+  //     }
+  //     if (fileInputs.image2.length > 0) {
+  //       fileInputs.image2.forEach((file) => {
+  //         digitalEditionFormData.append("image2", file);
+  //       });
+  //     }
+
+  //     const url = digitalEditionId
+  //       ? `${backendURL}/api/updateDigitalEdition/${digitalEditionId}`
+  //       : `${backendURL}/api/createDigitalEdition`;
+  //     const method = digitalEditionId ? "PUT" : "POST";
+
+  //     const response = await fetch(url, {
+  //       method,
+  //       body: digitalEditionFormData,
+  //     });
+
+  //     if (!response.ok) {
+  //       const errorData = await response.json();
+  //       throw new Error(errorData.message || "Failed to save digital edition");
+  //     }
+
+  //     await response.json();
+  //     showSnackbar(
+  //       digitalEditionId
+  //         ? "Digital Edition updated successfully"
+  //         : "Digital Edition created successfully",
+  //       "success"
+  //     );
+  //     setNavigateAfterSuccess(true);
+  //   } catch (error) {
+  //     console.error("Error saving digital edition:", error);
+  //     showSnackbar(
+  //       error.message || "Failed to save digital edition",
+  //       "error",
+  //       6000
+  //     );
+  //     setNavigateAfterSuccess(false);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -558,22 +615,17 @@ const DigitalEditionForm = () => {
         throw new Error(errorData.message || "Failed to save digital edition");
       }
 
-      await response.json();
+      const data = await response.json();
       showSnackbar(
         digitalEditionId
           ? "Digital Edition updated successfully"
           : "Digital Edition created successfully",
         "success"
       );
-      setNavigateAfterSuccess(true);
+      navigate("/DashBoard/Admin/DigialEditions");
     } catch (error) {
       console.error("Error saving digital edition:", error);
-      showSnackbar(
-        error.message || "Failed to save digital edition",
-        "error",
-        6000
-      );
-      setNavigateAfterSuccess(false);
+      showSnackbar(error.message || "Failed to save digital edition", "error");
     } finally {
       setLoading(false);
     }
