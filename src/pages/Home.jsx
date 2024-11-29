@@ -86,6 +86,7 @@ export default function Home() {
   const [isTyping, setIsTyping] = useState(true);
   const fullText = "The Autograph";
   const typingSpeed = 150;
+  const pauseDuration = 1000;
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -181,7 +182,6 @@ export default function Home() {
 
   const resetTyping = useCallback(() => {
     setText("");
-    setIsTyping(true);
   }, []);
 
   useEffect(() => {
@@ -189,37 +189,47 @@ export default function Home() {
     let currentIndex = 0;
 
     const typeNextCharacter = () => {
-      if (currentIndex < fullText.length) {
-        setText(fullText.slice(0, currentIndex + 1));
-        currentIndex++;
-        timeoutId = setTimeout(typeNextCharacter, typingSpeed);
-      } else {
-        setIsTyping(false);
+      if (loading) {
+        // Only continue if still loading
+        if (currentIndex < fullText.length) {
+          setText(fullText.slice(0, currentIndex + 1));
+          currentIndex++;
+          timeoutId = setTimeout(typeNextCharacter, typingSpeed);
+        } else {
+          // When reaching the end, pause briefly then restart
+          timeoutId = setTimeout(() => {
+            currentIndex = 0;
+            setText("");
+            // Start the next cycle
+            timeoutId = setTimeout(typeNextCharacter, typingSpeed);
+          }, pauseDuration);
+        }
       }
     };
 
+    // Start the animation
     typeNextCharacter();
 
+    // Cleanup function
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
       resetTyping();
     };
-  }, [fullText, typingSpeed, resetTyping]);
+  }, [loading, fullText, typingSpeed, resetTyping]); // Added loading dependency
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">
-          {isTyping && (
-            <RotatingLines
-              strokeColor="grey"
-              strokeWidth="5"
-              animationDuration="0.75"
-              width="96"
-              visible={true}
-            />
-          )}
+          <RotatingLines
+            strokeColor="grey"
+            strokeWidth="5"
+            animationDuration="0.75"
+            width="96"
+            visible={true}
+          />
           <h1 className="text-2xl font-light text-HeroClr">{text}</h1>
         </div>
       </div>
