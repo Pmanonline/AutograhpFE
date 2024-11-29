@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import moment from "moment";
 import GridCards from "../components/Cards/HomeGridCard";
 import LatestGridHome from "../components/Cards/LatestGridHome";
+import { RotatingLines } from "react-loader-spinner";
 import {
   Box,
   Card,
@@ -81,6 +82,10 @@ export default function Home() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [text, setText] = useState("");
+  const [isTyping, setIsTyping] = useState(true);
+  const fullText = "The Autograph";
+  const typingSpeed = 150;
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -160,10 +165,63 @@ export default function Home() {
     if (cleanText.length <= maxLength) return cleanText;
     return cleanText.substring(0, maxLength).trim() + "...";
   };
+  // if (loading) {
+  //   return (
+  //     <div className="flex justify-center items-center h-screen">
+  //       <RotatingLines
+  //         strokeColor="grey"
+  //         strokeWidth="5"
+  //         animationDuration="0.75"
+  //         width="96"
+  //         visible={true}
+  //       />
+  //     </div>
+  //   );
+  // }
+
+  const resetTyping = useCallback(() => {
+    setText("");
+    setIsTyping(true);
+  }, []);
+
+  useEffect(() => {
+    let timeoutId = null;
+    let currentIndex = 0;
+
+    const typeNextCharacter = () => {
+      if (currentIndex < fullText.length) {
+        setText(fullText.slice(0, currentIndex + 1));
+        currentIndex++;
+        timeoutId = setTimeout(typeNextCharacter, typingSpeed);
+      } else {
+        setIsTyping(false);
+      }
+    };
+
+    typeNextCharacter();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      resetTyping();
+    };
+  }, [fullText, typingSpeed, resetTyping]);
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <CircularProgress />
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          {isTyping && (
+            <RotatingLines
+              strokeColor="grey"
+              strokeWidth="5"
+              animationDuration="0.75"
+              width="96"
+              visible={true}
+            />
+          )}
+          <h1 className="text-2xl font-light text-HeroClr">{text}</h1>
+        </div>
       </div>
     );
   }

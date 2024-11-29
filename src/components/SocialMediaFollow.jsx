@@ -13,13 +13,14 @@ const SocialMediaFollow = () => {
   const navigate = useNavigate();
 
   const categories = [
+    "Society",
+    "Events",
     "Celebrities",
     "Fashion",
     "LifeStyle",
     "Entertainment",
     "Shopping",
     "Business",
-    "Awards",
   ];
 
   const fetchDataLength = useCallback(
