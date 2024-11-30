@@ -18,7 +18,11 @@ export const SocietyCard = () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${backendURL}/api/getAllFashion?postType=Society`
+        `${backendURL}/api/getAllFashion?postType=Society`,
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: false,
+        }
       );
       if (!response.ok) throw new Error("Failed to fetch society data");
       const data = await response.json();
