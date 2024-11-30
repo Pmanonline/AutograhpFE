@@ -15,14 +15,35 @@ const Society = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // const fetchSociety = useCallback(async () => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await fetch(
+  //       `${backendURL}/api/getAllFashion?postType=Society`,
+  //       {
+  //         headers: { "Content-Type": "application/json" },
+  //         withCredentials: false,
+  //       }
+  //     );
+  //     if (!response.ok) throw new Error("Failed to fetch society data");
+  //     const data = await response.json();
+  //     setNewsItems(data.posts);
+  //     setError(null);
+  //   } catch (error) {
+  //     console.error("Error fetching society data:", error);
+  //     setError(error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [backendURL]);
   const fetchSociety = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
         `${backendURL}/api/getAllFashion?postType=Society`,
         {
-          method: "GET", // Optional, as GET is the default method
-          credentials: "omit", // Ensures that credentials are not sent
+          headers: { "Content-Type": "application/json" },
+          withCredentials: false,
         }
       );
       if (!response.ok) throw new Error("Failed to fetch society data");
@@ -35,7 +56,7 @@ const Society = () => {
     } finally {
       setLoading(false);
     }
-  }, [backendURL]); // Make sure to include backendURL in the dependency array
+  }, [backendURL]);
 
   useEffect(() => {
     fetchSociety();
