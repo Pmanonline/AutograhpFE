@@ -20,8 +20,8 @@ export const SocietyCard = () => {
       const response = await fetch(
         `${backendURL}/api/getAllFashion?postType=Society`,
         {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: false,
+          method: "GET", // Optional, as GET is the default method
+          credentials: "omit", // Ensures that credentials are not sent
         }
       );
       if (!response.ok) throw new Error("Failed to fetch society data");

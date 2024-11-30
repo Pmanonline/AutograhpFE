@@ -19,7 +19,11 @@ const Society = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${backendURL}/api/getAllFashion?postType=Society`
+        `${backendURL}/api/getAllFashion?postType=Society`,
+        {
+          method: "GET", // Optional, as GET is the default method
+          credentials: "omit", // Ensures that credentials are not sent
+        }
       );
       if (!response.ok) throw new Error("Failed to fetch society data");
       const data = await response.json();
@@ -31,7 +35,7 @@ const Society = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [backendURL]); // Make sure to include backendURL in the dependency array
 
   useEffect(() => {
     fetchSociety();
