@@ -29,6 +29,8 @@ import SingleContent from "./pages/singleContent";
 import ResponsiveNavbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import SingleVideoPage from "./pages/SingleShortVideo";
+import TermsOfUse from "./pages/TermsOfUse";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // AdminDashboad
 // Admin
@@ -92,6 +94,8 @@ const AppContent = () => {
         <Route path="celebrities" element={<Celebrities />} />
         <Route path="video/:slug?" element={<SingleVideoPage />} />
         <Route path="/contactUs" element={<ContactUs />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* Lifestyle section with nested routes */}
         <Route path="/lifeStyle" element={<LifestyleLayout />}>

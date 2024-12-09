@@ -44,14 +44,14 @@ const cardData = [
   {
     title: "Buzi Bodi",
     description:
-      "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
+      "Unmask the Silence that surrounds you, and boldly share your truth without fear of judgment or reprisal.",
     image: buzibodyImage,
     link: "/service-2",
   },
   {
     title: "E-companion",
     description:
-      "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
+      " A vibrant, dynamic background featuring images of people connecting, networking, and engaging in conversations.",
     image: companionImage,
     link: "/service-2",
   },
@@ -61,14 +61,14 @@ const cardData2 = [
   {
     title: "E-ancestries",
     description:
-      "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
+      " Connect the Dots of Your Heritage: Discover the Stories of Your Ancestors and Embrace the Rich Tapestry of Your Family History",
     image: ancestriesImage,
     link: "https://eroot.ng",
   },
   {
     title: "E-news",
     description:
-      "Lorem ipsum dolor sit amet consectetur. Et sed et non quisque. Rhoncus tellus tellus vitae etiam mauris felis d",
+      " Stay Informed, Stay Connected: Enews Brings You the Latest Updates and Insights That Matter Most!",
     image: enewsImage,
     link: "https://enews.com.ng/",
   },
