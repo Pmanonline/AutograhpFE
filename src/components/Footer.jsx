@@ -29,33 +29,38 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-lg font-semibold mb-4">Company</h3>
+            <h3 className="text-lg font-semibold mb-4 ">Categories</h3>
             <ul className="space-y-2">
-              <li>
-                <Link to="/cetegories">Categories</Link>
+              <li className=" hover:text-red-300">
+                <Link to="/lifeStyle/home">LifeStyle</Link>
               </li>
-              <li>
+              <li className=" hover:text-red-300">
                 <Link to="/fashion">Fashion</Link>
               </li>
-              <li>
-                <Link to="/lifestyle">Lifestyle</Link>
+              <li className=" hover:text-red-300">
+                <Link to="/business">Business</Link>
               </li>
-              <li>
-                <Link to="/entertainment">Entertainment</Link>
+              <li className=" hover:text-red-300">
+                <Link to="/Society">Society</Link>
               </li>
-              <li>
-                <Link to="/shopping">Shopping</Link>
+              <li className=" hover:text-red-300">
+                <Link to="/Events">Events</Link>
+              </li>
+              <li className=" hover:text-red-300">
+                <Link to="/DigitalEditions">DigitalEditions</Link>
               </li>
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4">Support</h3>
             <ul className="space-y-2">
-              <li>
-                <Link to="/contact-us">Contact Us</Link>
+              <li className=" hover:text-red-300">
+                <Link to="/contactUs">Contact Us</Link>
               </li>
-              <li>
-                <Link to="/blogs">Blogs</Link>
+              <li className=" hover:text-red-300">
+                <Link target="_blank" to="https://essentialgroup.ng/">
+                  Essential Group
+                </Link>
               </li>
               {userInfo?.role == "admin" ? (
                 <li>
@@ -69,18 +74,19 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
-              <li>
+              <li className=" hover:text-red-300">
                 <Link to="/terms">Terms and Conditions</Link>
               </li>
-              <li>
+              <li className=" hover:text-red-300">
                 <Link to="/privacy">Privacy Policy</Link>
               </li>
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 ">
               <a
+                className="hover:text-red-300"
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -88,6 +94,7 @@ const Footer = () => {
                 <Instagram className="w-6 h-6" />
               </a>
               <a
+                className="hover:text-red-300"
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -95,6 +102,7 @@ const Footer = () => {
                 <Facebook className="w-6 h-6" />
               </a>
               <a
+                className="hover:text-red-300"
                 href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
