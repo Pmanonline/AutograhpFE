@@ -17,6 +17,7 @@ import {
   Snackbar,
   CircularProgress,
 } from "@mui/material";
+import GroupsYouMayLike from "../components/Cards/GroupsYouMayLike";
 import PopCultureCarousel from "../components/Cards/PopCultureCarousel";
 import PodcastCarousel from "../components/Cards/PodcastsCarousel";
 import InterviewCarousel from "../components/Cards/InterviewCarousel";
@@ -70,7 +71,7 @@ const cardData2 = [
     description:
       " Stay Informed, Stay Connected: Enews Brings You the Latest Updates and Insights That Matter Most!",
     image: enewsImage,
-    link: "https://enews.com.ng/",
+    link: "https://essentialnews.ng",
   },
 ];
 
@@ -102,22 +103,6 @@ export default function Home() {
     });
   }, []);
 
-  const fetchNews = useCallback(async () => {
-    try {
-      const res = await fetch(`${backendURL}/api/getAllNews`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      setNews(data.posts.slice(0, 4));
-    } catch (error) {
-      console.error("Error fetching news:", error);
-      showSnackbar(`Failed to fetch news: ${error.message}`, "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [showSnackbar]);
-
   const fetchFashionTrend = useCallback(async () => {
     try {
       setLoading(true);
@@ -148,10 +133,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchNews();
-  }, [fetchNews]);
-
-  useEffect(() => {
     fetchFashionTrend();
   }, [fetchFashionTrend]);
 
@@ -166,19 +147,6 @@ export default function Home() {
     if (cleanText.length <= maxLength) return cleanText;
     return cleanText.substring(0, maxLength).trim() + "...";
   };
-  // if (loading) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen">
-  //       <RotatingLines
-  //         strokeColor="grey"
-  //         strokeWidth="5"
-  //         animationDuration="0.75"
-  //         width="96"
-  //         visible={true}
-  //       />
-  //     </div>
-  //   );
-  // }
 
   const resetTyping = useCallback(() => {
     setText("");
@@ -245,8 +213,7 @@ export default function Home() {
             className="text-5xl md:text-5xl lg:text-6xl font-bold mb-4 gap-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+            transition={{ duration: 0.5 }}>
             Your <span className="text-HeroClr">Gateway</span> to
             <br />
             Compelling
@@ -257,8 +224,7 @@ export default function Home() {
             className="text-sm md:text-lg mt-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+            transition={{ duration: 0.5, delay: 0.2 }}>
             Discover how our platform can help you create and share engaging
             narratives.
           </motion.p>
@@ -272,8 +238,7 @@ export default function Home() {
               className="w-full rounded-lg overflow-hidden"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
+              transition={{ duration: 0.3, delay: index * 0.1 }}>
               <img
                 src={HeroImage}
                 alt={`Document preview ${index + 1}`}
@@ -325,8 +290,7 @@ export default function Home() {
                       borderColor: "white",
                     },
                   },
-                }}
-              >
+                }}>
                 <Box
                   className="card-overlay"
                   sx={{
@@ -346,14 +310,12 @@ export default function Home() {
                     flexDirection: "column",
                     justifyContent: "flex-end",
                     zIndex: 1,
-                  }}
-                >
+                  }}>
                   <Typography
                     gutterBottom
                     component="div"
                     className="font-bold text-white"
-                    variant="h4"
-                  >
+                    variant="h4">
                     {card.title}
                   </Typography>
                   <Typography variant="body2" className="text-white mb-4">
@@ -438,7 +400,7 @@ export default function Home() {
       </div>
       {/* podCast Cards ends */}
       {/* ESSENTIAL NEWS */}
-      <EssentialNews news={news} />
+      {/* <EssentialNews news={news} /> */}
       {/* ESSENTIAL NEWS */}
       {/* InterViews Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-[8rem]">
@@ -481,8 +443,7 @@ export default function Home() {
                       borderColor: "white",
                     },
                   },
-                }}
-              >
+                }}>
                 <Box
                   className="card-overlay"
                   sx={{
@@ -502,14 +463,12 @@ export default function Home() {
                     flexDirection: "column",
                     justifyContent: "flex-end",
                     zIndex: 1,
-                  }}
-                >
+                  }}>
                   <Typography
                     gutterBottom
                     component="div"
                     className="font-bold text-white"
-                    variant="h4"
-                  >
+                    variant="h4">
                     {card.title}
                   </Typography>
                   <Typography variant="body2" className="text-white mb-4">
@@ -532,81 +491,9 @@ export default function Home() {
         <EventSocietyCard />
       </section>
       {/* society/event CARDS */}
+      <section className=" px-5  py-[4rem]">
+        <GroupsYouMayLike />
+      </section>
     </>
   );
 }
-
-export const EssentialNews = ({ news }) => {
-  return (
-    <>
-      {/* NEWS ARTICLES */}
-      <div className=" lg:mx-[10rem] Nlg:mx-[5rem] mb-[8rem]">
-        <div className="my-5 font-semibold">
-          <h3>
-            More From
-            <Link to={"/"} target="blank">
-              <span className="underline text-blue-600 mx-3 cursor-pointer hover:text-red-500">
-                Essential News
-              </span>
-            </Link>
-          </h3>
-        </div>
-        {/* Grid Layout */}
-        <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-6">
-          {news.map((item) => (
-            <Card
-              key={item._id}
-              className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300"
-            >
-              <CardMedia
-                component="img"
-                height="200"
-                image={
-                  item.image
-                    ? `${backendURL}${item.image}`
-                    : "/fallback-image.png"
-                }
-                alt={item.title}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/fallback-image.png";
-                }}
-                className="h-48 object-cover"
-              />
-              <CardContent className="flex-1 flex flex-col">
-                <Typography
-                  variant="subtitle1"
-                  component="h2"
-                  className="font-medium mb-2 line-clamp-2  hover:text-red-500"
-                >
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline "
-                  >
-                    {item.title}
-                  </a>
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  className="mt-auto"
-                >
-                  {moment(item.date).format("MMMM D, YYYY")}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {news.length === 0 && (
-          <div className="text-center py-10 text-gray-500">
-            No news articles available
-          </div>
-        )}
-      </div>
-      {/* NEWS ARTICLES ENDS*/}
-    </>
-  );
-};

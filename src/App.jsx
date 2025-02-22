@@ -31,6 +31,8 @@ import Footer from "./components/Footer";
 import SingleVideoPage from "./pages/SingleShortVideo";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import GroupPage from "./pages/GroupPage";
+import GroupDiscussionPage from "./pages/GroupDiscussionPage";
 
 // AdminDashboad
 // Admin
@@ -96,6 +98,8 @@ const AppContent = () => {
         <Route path="/contactUs" element={<ContactUs />} />
         <Route path="/terms" element={<TermsOfUse />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/Group/:slug?" element={<GroupPage />} />
+        <Route path="/discussion/:slug?" element={<GroupDiscussionPage />} />
 
         {/* Lifestyle section with nested routes */}
         <Route path="/lifeStyle" element={<LifestyleLayout />}>
