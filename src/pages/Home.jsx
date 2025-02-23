@@ -33,6 +33,10 @@ import PrideOfNigeria from "../assets/images/prideOfNigeria.png";
 import ShortVideosSection from "../components/Cards/ShortVideoCards";
 import ContainerImage from "../assets/images/Container.png";
 import AllEssentialSite from "../components/Cards/AllEssentialSite";
+import {
+  BreakingNewsCarousel,
+  TopTopicCarousel,
+} from "../components/EnewsComponents";
 
 const documentImages = ["/path/to/document1.jpg", ,];
 
@@ -400,7 +404,9 @@ export default function Home() {
       </div>
       {/* podCast Cards ends */}
       {/* ESSENTIAL NEWS */}
-      {/* <EssentialNews news={news} /> */}
+
+      <BreakingNewsCarousel />
+      <TopTopicCarousel />
       {/* ESSENTIAL NEWS */}
       {/* InterViews Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-[8rem]">

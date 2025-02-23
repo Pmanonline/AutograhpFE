@@ -279,7 +279,7 @@ const GroupPage = () => {
     if (isGroupMember) {
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm bg-red-500 text-white px-3 py-1 rounded-full flex items-center">
+          <span className="text-sm bg-red-500 mid:hidden text-white px-3 py-1 rounded-full flex items-center">
             <Users className="w-4 h-4 mr-1" />
             Member
           </span>
